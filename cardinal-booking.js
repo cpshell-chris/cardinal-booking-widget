@@ -287,7 +287,7 @@ const S = {
      never sends it), and courtesy is legacy state the UI no longer writes —
      buildPayload derives the wire `courtesy` flag from `ride` + the same
      drop-off handling gate as before (commit 4e00b5e). */
-  sched:     { handling: "dropoff", date: "", slot: "", afterHours: false, courtesy: false, ride: false, wgAttested: false },
+  sched:     { handling: "", date: "", slot: "", afterHours: false, courtesy: false, ride: false, wgAttested: false }, // handling starts UNSELECTED (owner 2026-07-07): no visit type is pre-highlighted — all three tiles read white until the customer picks one
   timeAnchor: "", // 'YYYY-MM-DD' — start of the visible 7-day week window on the Time step; "" until renderTime first sets it
   _availPreload: null, // { key, promise } — the mount-time availability preload (preview feedback round 3); consumed once by drawSlots when the key still matches, null otherwise. See preloadAvailability().
   _availCache: null, // { key, days } — the last SUCCESSFUL week-availability response, keyed by _cpsAvailabilityKey. drawSlots reuses it synchronously when the key still matches (e.g. picking a day within the same week), so a day-pick repaints instantly with NO loading flash and NO day-grid pending shimmer. Invalidated by explicit retry and slot-gone recovery; week-nav/handling/lane/service changes re-key on their own.
@@ -1694,7 +1694,7 @@ window._cpsGuardHook = function() {
        announcing a visit-type change and routing to a Time step that cannot
        be used without a basket. */
     if (handlingInvalid && S.basket.length === 0) {
-      S.sched.handling  = 'dropoff';
+      S.sched.handling  = ''; // rebuild-from-scratch: start unselected too (owner 2026-07-07), matching the boot default
       S.sched.date       = '';
       S.sched.slot        = '';
       S.sched.wgAttested = false;
@@ -2871,6 +2871,7 @@ function _cpsAvailabilityKey(params) {
 */
 function preloadAvailability() {
   if (!CONFIG.backendUrl) return;
+  if (!S.sched.handling) return; // no visit type is pre-selected (owner 2026-07-07); availability is per-handling, so there's nothing to warm until the customer picks one — the Time step fetches when a handling is chosen
   try {
     /* Round 5 (Monday-anchored weeks): the anchor mirrors EXACTLY what the
        Time step's first drawSlots will request — weekRequestAnchor over the
@@ -3123,6 +3124,7 @@ var HANDLING_LABELS = {
   (Task 6 may refine per-handling date gates further; this is the Task 5 rule.)
 */
 function schedGateOk() {
+  if (!S.sched.handling) return false; // no visit type is pre-selected (owner 2026-07-07) — require an explicit pick before Continue
   if (!S.sched.date) return false;
   if (S.sched.handling === "whiteglove") return !!S.sched.wgAttested;
   if (S.sched.handling === "wait") return !!S.sched.slot;
@@ -3342,7 +3344,7 @@ function renderTime(body, foot, h2) {
     <p class="cps-steptitle">When works for you?</p>
     <p class="cps-stepsub">Choose how you want to handle the visit, then a day.</p>
     ${handlingHtml}
-    ${weekHtml}
+    ${S.sched.handling ? weekHtml : ""}
     ${slotsHtml}
     ${rideHtml}
     ${whiteGloveHtml}`;
@@ -3381,8 +3383,10 @@ function renderTime(body, foot, h2) {
   };
 
   /* Single fetch drives both the day-button availability paint and (for
-     'wait') the slots for the currently picked date. */
-  refreshTimeGrid(body);
+     'wait') the slots for the currently picked date. Skipped until a visit
+     type is picked (owner 2026-07-07): the week grid is hidden until then, and
+     availability is per-handling — there's nothing to fetch or paint yet. */
+  if (S.sched.handling) refreshTimeGrid(body);
 }
 
 /* (1b: the White Glove "?" popover — trigger, popover element, outside-click
