@@ -1,0 +1,16 @@
+<!-- Cardinal Plaza Shell — booking widget loader. Loads the widget from GitHub
+     and injects it. Update the hosted file to change the widget; no Duda edits. -->
+<script id="cps-booking-loader">
+(function () {
+  if (window.cardinalShowBooking) return; // already loaded
+  var url = 'https://raw.githubusercontent.com/cpshell-chris/cardinal-booking-widget/main/cardinal-booking.js?t=' + Date.now();
+  fetch(url)
+    .then(function (r) { return r.text(); })
+    .then(function (code) {
+      var s = document.createElement('script');
+      s.textContent = code;
+      document.body.appendChild(s);
+    })
+    .catch(function (e) { console.error('Cardinal widget failed to load', e); });
+})();
+</script>
