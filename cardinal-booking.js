@@ -326,6 +326,18 @@ const S = {
 window.CONFIG = CONFIG;
 window.S = S;
 
+/* Pristine snapshot of the booking state, captured before any mutation, so a
+   COMPLETED booking can be wiped back to first-open defaults. S is const and
+   held by reference (window.S, closures), so resetBooking() mutates it in
+   place — reassigning every key from a fresh deep clone — rather than
+   swapping the object. See cardinalShowBooking()'s reopen-after-Success path. */
+const _pristineState = JSON.parse(JSON.stringify(S));
+function resetBooking() {
+  const fresh = JSON.parse(JSON.stringify(_pristineState));
+  Object.keys(fresh).forEach(function(k) { S[k] = fresh[k]; });
+}
+window.resetBooking = resetBooking;
+
 /* Step labels — displayed in the progress stepper + caption line (1b) */
 const STEPS = ["Services", "Time", "Verify", "Vehicle", "Extras", "Review"];
 
@@ -656,6 +668,13 @@ function cardinalShowBooking() {
        paint the day grid instantly instead of fetching on step entry. Fired
        once, live path only — see preloadAvailability()'s doc comment. */
     preloadAvailability();
+  } else if (S.step === 6) {
+    /* A prior booking finished on the terminal Success screen (step 6). Closing
+       only hides the overlay — it never resets state — so reopening used to
+       re-show the confirmation box. Start a fresh booking from step 0 instead.
+       Only step 6 resets: an in-progress flow closed by accident still resumes
+       where the customer left off. */
+    resetBooking();
   }
   document.getElementById("cps-overlay").classList.add("cps-open");
   render();
