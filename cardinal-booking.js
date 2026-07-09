@@ -9,7 +9,7 @@
   if (document.getElementById('cps-booking-style')) return;
   var st = document.createElement('style');
   st.id = 'cps-booking-style';
-  st.textContent = "/* ---- Brand tokens — exact values from cardinalplazashell.com (Duda theme) ---- */\n  :root {\n    --cps-yellow:  #FFD305;   /* Shell yellow — primary CTA fill + border */\n    --cps-red:     #DB1D20;   /* Brand red — accent / focus */\n    --cps-ink:     #060606;   /* Primary text (near-black) */\n    --cps-gray:    #727272;   /* Muted text + headings */\n    /* --cps-gray-strong — derived contrast-safe variant of --cps-gray for\n       SMALL (<=16px) muted text only (v2 Task 13 finding 4). #727272 on\n       --cps-bg (#EEEEEE) computes to 4.15:1 — passes the 3:1 large-text\n       threshold (so headings/.cps-h3 keep --cps-gray unchanged, per design\n       contract) but fails the 4.5:1 AA threshold for normal/small text.\n       #666666 on #EEEEEE clears 4.5:1. Never used for headings. */\n    --cps-gray-strong: #666666;\n    --cps-bg:      #EEEEEE;   /* Page / modal background */\n    --cps-surface: #FFFFFF;   /* Cards / panels (also #F7F7F7 for secondary) */\n\n    --cps-line:    #E4E7EB;   /* Hairline borders */\n    --cps-ok:      #1B8A5A;   /* Success green */\n    --cps-shadow:  0 18px 50px rgba(16, 20, 28, 0.28);\n    --cps-radius:  14px;      /* Modal shell corner */\n    --cps-radius-ctl: 8px;    /* Buttons / inputs / chips */\n    --cps-font:    \"Inter\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif;\n  }\n\n  /* ---- Minimal local-test launcher (not deployed to Duda) ---- */\n  .cps-local-launcher {\n    font-family: var(--cps-font);\n    background: var(--cps-bg);\n    min-height: 100vh;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    margin: 0;\n  }\n\n  /* ---- Modal overlay ---- */\n  .cps-overlay {\n    position: fixed;\n    inset: 0;\n    background: rgba(10, 12, 16, 0.62);\n    backdrop-filter: blur(3px);\n    display: none;\n    align-items: flex-start;\n    justify-content: center;\n    z-index: 99999;\n    padding: 28px 16px;\n    overflow-y: auto;\n  }\n  .cps-overlay.cps-open { display: flex; }\n\n  /* Address autocomplete — PlaceAutocompleteElement (Places API New).\n     The legacy Autocomplete dropdown was a body-appended pac-container that\n     needed a z-index bump above the 99999 overlay; the new element renders\n     its suggestion list inside its OWN shadow DOM, positioned within the\n     element and therefore inside the modal's stacking context — no page CSS\n     is needed for the dropdown, so that stale rule is deleted. Styling goes\n     through the element's documented hooks: standard host properties plus\n     ::part() (input, prediction-list, ...). Matched to the widget's control\n     look (.cps-textarea): 44px height, control radius, Inter, brand line\n     border. NOT matchable (component-internal): the focus ring geometry,\n     the built-in search icon/clear button, and the exact 1.5px inner input\n     border (the host carries the widget border instead). */\n  .cps-addr-ac {\n    display: block;\n    width: 100%;\n    box-sizing: border-box;\n    font-family: var(--cps-font);\n    color-scheme: light;\n    background-color: var(--cps-surface);\n    border: 1.5px solid var(--cps-line);\n    border-radius: var(--cps-radius-ctl);\n  }\n  .cps-addr-ac::part(input) {\n    min-height: 44px;\n    padding: 11px 12px;\n    font-family: var(--cps-font);\n    font-size: 15px;\n    color: var(--cps-ink);\n    border-radius: var(--cps-radius-ctl);\n  }\n  .cps-addr-ac::part(prediction-list) {\n    font-family: var(--cps-font);\n    font-size: 15px;\n    color: var(--cps-ink);\n    border-radius: var(--cps-radius-ctl);\n  }\n\n  /* ---- Modal shell ---- */\n  .cps-modal {\n    font-family: var(--cps-font);\n    background: var(--cps-bg);\n    width: 100%;\n    max-width: 560px;\n    border-radius: var(--cps-radius);\n    border-top: 4px solid var(--cps-yellow);\n    box-shadow: var(--cps-shadow);\n    overflow: hidden;\n    position: relative;\n    animation: cps-pop 0.22s cubic-bezier(0.2, 0.8, 0.25, 1);\n  }\n  @keyframes cps-pop {\n    from { opacity: 0; transform: translateY(14px) scale(0.985); }\n    to   { opacity: 1; transform: none; }\n  }\n\n  /* ---- Modal header ---- */\n  .cps-head {\n    background: var(--cps-surface);\n    color: var(--cps-ink);\n    padding: 16px 22px 13px;\n    position: relative;\n    border-bottom: 1px solid var(--cps-line);\n  }\n  .cps-head .cps-logo {\n    height: 34px;\n    width: auto;\n    display: block;\n    margin: 0 0 7px;\n  }\n  /* Preview feedback round 7 (item 1, the owner): the site itself renders\n     Inter at REGULAR weights, so the widget does too — every font-weight in\n     this stylesheet is 400 except .cps-btn-primary (500, the one deliberate\n     exception: 15px ink on the saturated yellow fill reads washed-out at\n     400; 500 is the lightest weight that anchors the CTA without reading\n     as bold against the site style). */\n  .cps-head .cps-shop {\n    font-size: 15px;\n    font-weight: 400;\n    color: var(--cps-ink);\n    letter-spacing: 0.01em;\n    margin: 0 0 4px;\n  }\n  .cps-head h2 {\n    margin: 0;\n    font-size: 14.5px;\n    font-weight: 400;\n    color: var(--cps-gray);\n  }\n  #cps-h2:focus { outline: none; } /* programmatic focus target only (tabindex=-1) — suppress the default ring; not keyboard-interactive */\n  .cps-x {\n    position: absolute;\n    top: 14px;\n    right: 14px;\n    width: 32px;\n    height: 32px;\n    border-radius: 50%;\n    border: 0;\n    cursor: pointer;\n    background: #EFEFEF;\n    color: #5b5b5b;\n    font-size: 18px;\n    line-height: 1;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    font-family: var(--cps-font);\n  }\n  .cps-x:hover { background: #E2E2E2; color: var(--cps-ink); }\n  /* Tap-target floor (WCAG, >=44x44) — same expanded-hit-area pattern as\n     .cps-step-btn / #cps-wg-info: keep the visible 32px circle, expand only\n     the invisible hit area via an absolutely-positioned ::before (.cps-x is\n     already `position:absolute`, so it's already a positioning context —\n     no change needed there). .cps-x sits alone in the header corner (no\n     adjacent interactive control), so the wider invisible hit area can't\n     overlap another target. */\n  .cps-x::before {\n    content: \"\";\n    position: absolute;\n    top: 50%;\n    left: 50%;\n    width: 44px;\n    height: 44px;\n    transform: translate(-50%, -50%);\n  }\n\n  /* ---- Step progress dots ---- */\n  /* 1b redesign: #cps-steps is now a block containing the bar row\n     (.cps-steps-bars) plus the caption line below it, so the flex row moves\n     to the inner wrapper. */\n  .cps-steps {\n    display: block;\n    padding: 14px 22px 0;\n  }\n  .cps-steps-bars {\n    display: flex;\n    gap: 6px;\n  }\n  /* Stepper caption (1b): names the current step and previews the next one —\n     \"STEP 2 OF 6 · TIME · NEXT: VERIFY YOUR NUMBER\". Plain '·' separators. */\n  .cps-step-caption {\n    margin: 8px 0 0;\n    font-size: 11px;\n    color: var(--cps-gray-strong);\n    letter-spacing: 0.06em;\n    text-transform: uppercase;\n  }\n\n  /* ---- Step progress dots as buttons (v2 Task 10 — clickable stepper) ----\n     The visible bar stays a thin 5px strip (unchanged look — see Task 12's\n     \"no visual redesign\" constraint); tap-target compliance (>=44x44, per\n     spec §10) is met with an invisible ::before that expands the hit area\n     without inflating the strip itself. */\n  .cps-step-btn {\n    appearance: none;\n    -webkit-appearance: none;\n    position: relative;\n    height: 5px;\n    flex: 1;\n    border: 0;\n    border-radius: 999px;\n    background: var(--cps-line);\n    transition: background 0.25s;\n    padding: 0;\n    margin: 0;\n    cursor: pointer;\n    font-family: var(--cps-font);\n  }\n  .cps-step-btn::before {\n    content: \"\";\n    position: absolute;\n    left: 0;\n    right: 0;\n    top: 50%;\n    transform: translateY(-50%);\n    min-height: 44px;\n  }\n  .cps-step-btn.cps-done   { background: #AB0000; cursor: pointer; }\n  .cps-step-btn.cps-active { background: var(--cps-red); cursor: default; }\n  .cps-step-btn:disabled   { cursor: default; }\n  .cps-step-btn.cps-done:hover { background: var(--cps-red); }\n  .cps-step-btn:disabled:not(.cps-active) { background: var(--cps-line); }\n\n  /* ---- Visually hidden (a11y live region + step-button labels) ---- */\n  .cps-sr-only {\n    position: absolute;\n    width: 1px;\n    height: 1px;\n    padding: 0;\n    margin: -1px;\n    overflow: hidden;\n    clip: rect(0, 0, 0, 0);\n    white-space: nowrap;\n    border: 0;\n  }\n\n  /* ---- Modal body + footer ---- */\n  .cps-body {\n    padding: 20px 22px 8px;\n    min-height: 230px;\n  }\n  .cps-foot {\n    display: flex;\n    gap: 10px;\n    align-items: center;\n    padding: 16px 22px 20px;\n  }\n\n  /* ---- Headings (gray, per design contract) ----\n     clamp() type scale (spec §10): desktop keeps today's exact sizes (the\n     clamp() max is each rule's pre-existing value, so >480px is visually\n     unchanged); the min is a readable floor for narrow phones, with the\n     viewport-relative middle term doing the fluid scaling in between. */\n  .cps-body h3 {\n    margin: 0 0 6px;\n    font-size: clamp(17px, 4.5vw, 20px);\n    font-weight: 400;\n    color: var(--cps-gray);\n    text-transform: uppercase;\n    letter-spacing: 0.03em;\n  }\n  .cps-steptitle {\n    font-size: clamp(19px, 5vw, 22px);\n    font-weight: 400;\n    margin: 0 0 4px;\n    color: var(--cps-gray);\n  }\n  .cps-stepsub {\n    font-size: clamp(12.5px, 3.4vw, 13.5px);\n    line-height: 1.5;\n    /* Small (<=16px) muted text — uses the AA-safe --cps-gray-strong, not\n       --cps-gray (v2 Task 13 finding 4; see :root for the contrast math). */\n    color: var(--cps-gray-strong);\n    margin: 0 0 18px;\n  }\n\n  /* ============================================================================\n     1b SECTIONED REDESIGN — shared components (design handoff\n     design_handoff_booking_widget_1b). Every content zone is a white SECTION\n     CARD with a small uppercase title; nothing floats directly on the gray\n     modal background.\n     ============================================================================ */\n  .cps-section {\n    background: var(--cps-surface);\n    border: 1.5px solid var(--cps-line);\n    border-radius: var(--cps-radius-ctl);\n    padding: 14px;\n    margin-bottom: 12px;\n  }\n  .cps-section-title {\n    margin: 0 0 10px;\n    font-size: 11px;\n    color: var(--cps-gray);\n    letter-spacing: 0.06em;\n    text-transform: uppercase;\n    font-weight: 400;\n  }\n  /* Emphasis variant — the \"Your visit so far\" basket card. */\n  .cps-section--em { border: 2px solid var(--cps-yellow); }\n\n  /* Full-width toggle tile (visit-type cards, ride, WG attestation, recs):\n     selection is conveyed by COLOR only (white -> yellow fill via .cps-sel);\n     tiles never resize on selection. Carries aria-pressed in the markup. */\n  .cps-tile {\n    display: block;\n    width: 100%;\n    text-align: left;\n    padding: 12px 14px;\n    font-size: 14px;\n    line-height: 1.45;\n  }\n  .cps-tile-title { display: block; font-size: 15px; }\n  .cps-tile-desc  { display: block; font-size: 12px; color: var(--cps-gray-strong); margin-top: 2px; line-height: 1.45; }\n  .cps-btn-ghost.cps-sel .cps-tile-desc,\n  .cps-btn-ghost.cps-sel .cps-tile-sub { color: #5b5b5b; }\n  .cps-tile-sub { display: block; font-size: 12px; color: var(--cps-gray-strong); margin-top: 2px; }\n  /* Disabled/unavailable tile: never a yellow border on something unclickable. */\n  .cps-btn-ghost.cps-tile:disabled,\n  .cps-btn-ghost.cps-tile:disabled:hover {\n    border-color: var(--cps-line);\n    color: #9a9a9a;\n    background: var(--cps-surface);\n    cursor: not-allowed;\n  }\n  .cps-btn-ghost.cps-tile:disabled .cps-tile-desc { color: #b0b0b0; }\n\n  /* Underlined text-link button (basket Remove, Resend code, Change number,\n     review-row Edit) — plain text affordances, not boxed buttons. */\n  .cps-linkbtn {\n    appearance: none;\n    background: none;\n    border: 0;\n    padding: 6px 2px;\n    font-family: var(--cps-font);\n    font-size: 13px;\n    color: var(--cps-gray);\n    text-decoration: underline;\n    cursor: pointer;\n  }\n  .cps-linkbtn:hover { color: var(--cps-ink); }\n\n  /* Error line (verify step) — red, 12px. */\n  .cps-err {\n    font-size: 12px;\n    color: var(--cps-red);\n    margin-top: 6px;\n  }\n\n  /* Calendar week (1b): MON-SUN letters row + 44px date squares, chevron\n     week nav in the section-title row. */\n  .cps-cal-head {\n    display: flex;\n    align-items: center;\n    justify-content: space-between;\n    margin: 0 0 10px;\n  }\n  .cps-cal-head .cps-section-title { margin: 0; }\n  .cps-cal-nav { display: flex; gap: 6px; }\n  .cps-wk-btn {\n    width: 32px;\n    height: 32px;\n    min-width: 32px;\n    min-height: 32px;\n    padding: 0;\n    border-radius: 50%;\n    font-size: 15px;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    position: relative;\n  }\n  /* Expanded invisible hit area (same pattern as .cps-x) so the visible\n     32px circle still meets the 44px tap-target floor. */\n  .cps-wk-btn::before {\n    content: \"\";\n    position: absolute;\n    top: 50%;\n    left: 50%;\n    width: 44px;\n    height: 44px;\n    transform: translate(-50%, -50%);\n  }\n  .cps-cal-dow {\n    font-size: 10px;\n    color: #9a9a9a;\n    text-align: center;\n    letter-spacing: 0.04em;\n  }\n\n  /* ---- Primary CTA button: yellow fill, 2px solid yellow border, 8px radius, ink text ---- */\n  /* hover inverts: white fill, yellow border, ink text */\n  .cps-btn {\n    appearance: none;\n    font-family: var(--cps-font);\n    cursor: pointer;\n    border-radius: var(--cps-radius-ctl);\n    font-size: 15px;\n    font-weight: 400;\n    padding: 12px 20px;\n    border: 2px solid transparent;\n    transition: transform 0.1s, background 0.12s, border-color 0.12s, color 0.12s;\n    /* Tap target floor (spec §10) — .cps-btn is the shared base for\n       .cps-btn-primary/.cps-btn-ghost, which in turn cover day buttons\n       (.cps-day-opt) and time-slot buttons (.cps-slot); one rule here\n       covers all of them without a visual redesign (padding already gets\n       most of the way there — this just guarantees the floor). */\n    min-height: 44px;\n    min-width: 44px;\n    box-sizing: border-box;\n  }\n  .cps-btn:active { transform: translateY(1px); }\n\n  /* PRIMARY button — matches the site theme's Primary style exactly:\n     yellow fill, 2px yellow border, black Inter text, centered, 17px, and\n     the site's signature HOVER INVERSION to a white fill (border + text\n     hold). Weight is REGULAR (400) to match the site's own button, which is\n     not bold (owner request); at 17px black on yellow stays legible. This\n     retires the last >400 weight — the whole widget is now Inter 400. */\n  .cps-btn-primary {\n    background: var(--cps-yellow);\n    color: var(--cps-ink);\n    border-color: var(--cps-yellow);\n    flex: 1;\n    font-size: 17px;\n    font-weight: 400;\n    text-align: center;\n  }\n  .cps-btn-primary:hover {\n    background: var(--cps-surface);\n    border-color: var(--cps-yellow);\n    color: var(--cps-ink);\n  }\n  .cps-btn-primary:disabled {\n    background: #F4E08C;\n    border-color: #F4E08C;\n    color: #8a8460;\n    cursor: not-allowed;\n  }\n\n  /* SECONDARY button (.cps-btn-ghost) — matches the site theme's Secondary\n     style: WHITE fill, 2px YELLOW border, black Inter text, and the hover\n     INVERSION to a yellow fill (border + text hold). This is the widget's\n     every-other-button style (Back, day tiles, time slots, handling options,\n     service tiles, add-another, week nav, Remove). Selected day/slot uses\n     .cps-sel (yellow fill) below. Disabled ghosts (unavailable/pending days,\n     capped week nav) drop to a MUTED gray outline so they never read as an\n     active yellow-bordered option. */\n  .cps-btn-ghost {\n    background: var(--cps-surface);\n    color: var(--cps-ink);\n    border-color: var(--cps-yellow);\n  }\n  .cps-btn-ghost:hover {\n    background: var(--cps-yellow);\n    border-color: var(--cps-yellow);\n    color: var(--cps-ink);\n  }\n  .cps-btn-ghost:disabled,\n  .cps-btn-ghost:disabled:hover {\n    background: var(--cps-surface);\n    border-color: var(--cps-line);\n    color: var(--cps-gray);\n    cursor: not-allowed;\n  }\n\n  /* ---- Skip link (Help + Recommended step footers) — was inline-styled\n     identically in both places (v2 Task 9 leftover); defined once here\n     (v2 Task 12 absorbed minor). Same visual as before, plus a proper\n     inline-flex + min-height so the tap target meets the 44px floor. ---- */\n  .cps-skip {\n    display: inline-flex;\n    align-items: center;\n    font-size: 13.5px;\n    color: var(--cps-gray);\n    text-decoration: underline;\n    padding: 8px 4px;\n    white-space: nowrap;\n    min-height: 44px;\n    box-sizing: border-box;\n  }\n\n  /* ---- Selected state (day/time picks): filled yellow, same as primary CTA, ---- */\n  /* so the chosen day/slot reads as \"active\" against the outlined ghost options. */\n  .cps-btn-ghost.cps-sel,\n  .cps-btn-ghost.cps-sel:hover {\n    background: var(--cps-yellow);\n    border-color: var(--cps-yellow);\n    color: var(--cps-ink);\n    font-weight: 400; /* round 7 (item 4): selection is conveyed by COLOR only — no weight change, so the tile never resizes */\n  }\n\n  /* ---- Owner tweak (2026-07-07): toggle tiles read NEUTRAL until selected ----\n     The .cps-tile group — visit-type tiles, the Need-a-ride toggle, the\n     White-Glove attestation, and the recommendation tiles — now defaults to a\n     gray hairline border. Yellow signals an ACTUAL choice, not a resting\n     default; selection (.cps-sel, above) still fills yellow. Day squares\n     (.cps-day-opt), time slots (.cps-slot), and service quick-picks\n     (.cps-svc-tile) are NOT .cps-tile, so they keep the yellow secondary-button\n     border unchanged. Hover stays subtle (gray border, white fill — never\n     yellow) so a tile only turns yellow once it's chosen. Disabled tiles keep\n     their own muted rule above. */\n  .cps-btn-ghost.cps-tile:not(.cps-sel) {\n    border-color: var(--cps-line);\n  }\n  .cps-btn-ghost.cps-tile:not(.cps-sel):not(:disabled):hover {\n    background: var(--cps-surface);\n    border-color: var(--cps-gray);\n    color: var(--cps-ink);\n  }\n\n  /* ---- Day squares (1b compact calendar week) ----\n     Every tile has IDENTICAL fixed dimensions, always (round 7 item 4 —\n     carried forward): a fixed 44px square showing only the date number, so\n     selecting a day or painting availability can never change any tile's\n     box. The per-tile \"Not available\" sublabel is RETIRED (1b) — the\n     unavailable state is the gray border + #c2c2c2 text, and the non-visual\n     signal is the aria-label (\"Monday, July 6, not available\") painted by\n     paintDayButtons. */\n  .cps-day-opt {\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    height: 44px;\n    min-width: 0;\n    padding: 0;\n    font-size: 14px;\n  }\n  .cps-day-unavail,\n  .cps-day-unavail:hover {\n    border-color: var(--cps-line);\n    color: #c2c2c2;\n    background: var(--cps-surface);\n    cursor: not-allowed;\n  }\n  /* The neutral \"pending\" state every day tile renders in while the\n     availability fetch is in flight — disabled, sublabel line reserved but\n     EMPTY (no \"Not available\" yet; the one-pass paint fills it).\n     Round 8 (item 3): a subtle shimmer/pulse (the SAME cps-skel-pulse the\n     round-7 service skeletons used, brand-neutral) so the grid reads as\n     INTENTIONALLY LOADING rather than as broken, unclickable dates. The\n     fixed tile geometry is untouched — .cps-day-opt keeps its min-height and\n     the reserved sublabel line, so nothing resizes when the verdict lands\n     (paintDayButtons removes .cps-day-pending in one pass). The date label\n     stays visible under the pulse (cleaner than hiding it). Static under\n     prefers-reduced-motion (fallback below). */\n  .cps-day-pending {\n    cursor: default;\n    animation: cps-skel-pulse 1.2s ease-in-out infinite;\n  }\n  @media (prefers-reduced-motion: reduce) {\n    .cps-day-pending { animation: none; }\n  }\n\n  /* ---- Week grid (1b compact calendar): ALWAYS 7 equal columns, Mon..Sun —\n     a real calendar row (weekday letters + 44px date squares). The compact\n     squares fit 7-up at every supported width, so the old 4-column mobile\n     reflow is retired. ---- */\n  .cps-days-grid {\n    display: grid;\n    grid-template-columns: repeat(7, minmax(0, 1fr));\n    gap: 6px;\n    text-align: center;\n  }\n\n  /* ---- Wait-appointment time slots: a wrapping row with proper spacing\n     between each time (owner request), same 8px rhythm as the day grid. ---- */\n  #cps-slots {\n    display: flex;\n    flex-wrap: wrap;\n    gap: 8px;\n    margin-top: 6px;\n  }\n\n  /* ---- Quick-pick service tiles (preview feedback round 5): one tappable\n     tile per bookable service, wrapping row, brand ghost-button styling,\n     44px+ tap targets via the .cps-btn floor. ---- */\n  .cps-svc-tiles {\n    display: flex;\n    flex-wrap: wrap;\n    gap: 8px;\n    margin-top: 6px;\n  }\n  .cps-svc-tile {\n    flex: 0 1 auto;\n    font-size: 14px;\n    padding: 10px 14px;\n  }\n\n  /* ---- Non-bookable info tiles (VA Safety / Emissions inspection): live in\n     the Popular-services row so customers find them where they look, but they\n     never enter the basket — a tap opens an advisory panel instead. Styled\n     with a NEUTRAL gray outline (not the bookable tiles' yellow border) so\n     they never read as a selectable service; a tap that opens the panel\n     leaves a subtle filled/gray-border active state. ---- */\n  .cps-btn-ghost.cps-svc-tile--info {\n    border-color: var(--cps-line);\n    color: var(--cps-gray);\n  }\n  .cps-btn-ghost.cps-svc-tile--info:hover {\n    background: var(--cps-surface);\n    border-color: var(--cps-gray);\n    color: var(--cps-ink);\n  }\n  .cps-btn-ghost.cps-svc-tile--info[aria-pressed=\"true\"],\n  .cps-btn-ghost.cps-svc-tile--info[aria-pressed=\"true\"]:hover {\n    background: #F7F7F7;\n    border-color: var(--cps-gray);\n    color: var(--cps-ink);\n  }\n\n  /* ---- Shimmer/pulse keyframe (round 8 item 3): the brand-neutral loading\n     pulse. Round 7 used it on Popular-services SKELETON tiles; round 8 seeds\n     those tiles from CONFIG.popularServices so they render real from the\n     first paint (no service skeletons anymore), and this keyframe now drives\n     the DAY-GRID pending shimmer (.cps-day-pending above) — the one place\n     the customer waits on a live read. A gentle opacity pulse, disabled\n     under prefers-reduced-motion where it is declared. ---- */\n  @keyframes cps-skel-pulse {\n    0%, 100% { opacity: 1; }\n    50%      { opacity: 0.55; }\n  }\n\n  /* ---- Free-text inputs inside question/form cards (preview feedback\n     round 5, owner screenshot): an inline width:100% input with its own\n     padding + border overflows its card without border-box — pin every\n     .cps-field input (and the \"Something else\" input specifically) to the\n     card's box. ---- */\n  #cps-intake-other,\n  .cps-field input {\n    max-width: 100%;\n    box-sizing: border-box;\n  }\n\n  /* ---- Form fields ---- */\n  .cps-field { margin-bottom: 14px; }\n  .cps-field label {\n    display: block;\n    font-size: 12.5px;\n    font-weight: 400;\n    color: var(--cps-ink);\n    margin-bottom: 5px;\n  }\n\n  /* ---- Checkbox label rows (WG attest, ride, inspection add-on, intake\n     multi-choice) — the whole row is the clickable target, so it gets the\n     tap-target floor, not just the 16x16 checkbox itself. ---- */\n  .cps-check-row { min-height: 44px; box-sizing: border-box; }\n\n  .cps-textarea {\n    width: 100%;\n    box-sizing: border-box;\n    font-family: var(--cps-font);\n    font-size: 15px;\n    color: var(--cps-ink);\n    background: var(--cps-surface);\n    border: 1.5px solid var(--cps-line);\n    border-radius: var(--cps-radius-ctl);\n    padding: 11px 12px;\n    transition: border-color 0.12s;\n    resize: vertical;\n    min-height: 90px;\n  }\n  .cps-textarea:focus {\n    outline: none;\n    border-color: var(--cps-red);\n  }\n  .cps-hint {\n    font-size: 12px;\n    /* Small (<=16px) muted text — uses the AA-safe --cps-gray-strong, not\n       --cps-gray (v2 Task 13 finding 4; see :root for the contrast math). */\n    color: var(--cps-gray-strong);\n    margin-top: 6px;\n  }\n\n  /* ---- OTP PIN entry (4 boxes, one digit each) ---- */\n  .cps-pin-row { display: flex; gap: 10px; margin-top: 6px; }\n  .cps-pin-box {\n    width: 48px;\n    height: 56px;\n    min-height: 44px;\n    min-width: 44px;\n    box-sizing: border-box;\n    font-family: var(--cps-font);\n    font-size: 22px;\n    font-weight: 400;\n    text-align: center;\n    color: var(--cps-ink);\n    background: var(--cps-surface);\n    border: 1.5px solid var(--cps-line);\n    border-radius: var(--cps-radius-ctl);\n    transition: border-color 0.12s;\n  }\n  .cps-pin-box:focus {\n    outline: none;\n    border-color: var(--cps-red);\n  }\n\n  /* ---- Stub step placeholder ---- */\n  .cps-stub {\n    padding: 32px 0 8px;\n    text-align: center;\n    font-size: 14px;\n    color: var(--cps-gray);\n  }\n\n  /* ---- Confirm step: review rows (label/value pairs, no price) ---- */\n  .cps-review {\n    background: var(--cps-surface);\n    border: 1.5px solid var(--cps-line);\n    border-radius: var(--cps-radius-ctl);\n    padding: 4px 14px;\n  }\n  .cps-review-row {\n    display: flex;\n    justify-content: space-between;\n    align-items: baseline;\n    gap: 14px;\n    padding: 11px 0;\n    border-bottom: 1px solid var(--cps-line);\n  }\n  .cps-review-row:last-child { border-bottom: none; }\n  .cps-review-label {\n    font-size: 12.5px;\n    font-weight: 400;\n    color: var(--cps-gray);\n    white-space: nowrap;\n  }\n  .cps-review-value {\n    flex: 1; /* 1b: rows gained a third (Edit-link) column — the value still fills the middle, right-aligned */\n    font-size: 14.5px;\n    color: var(--cps-ink);\n    text-align: right;\n  }\n\n  /* ---- Spinner ---- */\n  .cps-spinner {\n    width: 18px;\n    height: 18px;\n    border: 2.5px solid rgba(6, 6, 6, 0.2);\n    border-top-color: var(--cps-ink);\n    border-radius: 50%;\n    display: inline-block;\n    animation: cps-spin 0.7s linear infinite;\n    vertical-align: -3px;\n    margin-right: 8px;\n  }\n  @keyframes cps-spin { to { transform: rotate(360deg); } }\n\n  /* ---- Indeterminate progress (intake pending — preview feedback round 2).\n     Brand yellow sweep on the page-gray track, slim (4px). CSS-only; under\n     prefers-reduced-motion the sweep is replaced by a static filled track\n     (state is still conveyed by the \"One moment...\" text + announce()). ---- */\n  .cps-progress {\n    height: 4px;\n    max-width: 320px;\n    background: var(--cps-bg);\n    border-radius: 2px;\n    overflow: hidden;\n  }\n  .cps-progress-bar {\n    height: 100%;\n    width: 40%;\n    background: var(--cps-yellow);\n    border-radius: 2px;\n    animation: cps-progress-slide 1.2s ease-in-out infinite;\n  }\n  @keyframes cps-progress-slide {\n    0%   { transform: translateX(-100%); }\n    100% { transform: translateX(350%); }\n  }\n  @media (prefers-reduced-motion: reduce) {\n    .cps-progress-bar { animation: none; width: 100%; }\n  }\n\n  /* ---- Success ---- */\n  .cps-success {\n    text-align: center;\n    padding: 32px 16px 16px;\n  }\n  .cps-success .cps-circle {\n    width: 66px;\n    height: 66px;\n    border-radius: 50%;\n    background: rgba(27, 138, 90, 0.12);\n    color: var(--cps-ok);\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    font-size: 28px;\n    font-weight: 400;\n    margin: 0 auto 16px;\n  }\n  .cps-success h3 {\n    margin: 0 0 8px;\n    font-size: 21px;\n    font-weight: 400;\n    color: var(--cps-ink);\n    text-transform: none;\n    letter-spacing: 0;\n  }\n  .cps-success p {\n    margin: 0 auto 6px;\n    font-size: 14.5px;\n    /* Small (<=16px) muted text — uses the AA-safe --cps-gray-strong, not\n       --cps-gray (v2 Task 13 finding 4; see :root for the contrast math). */\n    color: var(--cps-gray-strong);\n    max-width: 380px;\n    line-height: 1.5;\n  }\n\n  /* ============================================================================\n     RESPONSIVE — small phones (spec §10). Desktop (>480px) is the existing\n     centered card, untouched above this block. Below 480px the modal goes\n     near-full-screen: header + stepper stay visible, the body region\n     (#cps-bodyc) is the sole scroll container, and the footer CTA docks to\n     the bottom of the modal with safe-area padding so it clears notches/\n     home-indicators on notched phones.\n\n     Scroll-container contract: .cps-body is the ONLY thing that scrolls on\n     mobile. .cps-modal is sized to the viewport (100dvh) with\n     `display:flex;flex-direction:column`; .cps-head/.cps-steps/.cps-foot\n     are `flex:0 0 auto` (fixed size) and .cps-body is `flex:1 1 auto;\n     overflow-y:auto` (the only item that grows/scrolls). Because .cps-foot\n     is a normal flex sibling — not position:fixed/absolute — it always\n     reserves its own space below .cps-body; there's no overlap to guard\n     against with synthetic bottom-padding on .cps-body, so none is added.\n     visualViewport (below, feature-detected) only needs to nudge\n     .cps-body's scroll position when the soft keyboard opens, not touch\n     this padding contract.\n     ============================================================================ */\n  @media (max-width: 480px) {\n    .cps-overlay {\n      padding: 0;\n      align-items: stretch;\n    }\n    .cps-modal {\n      max-width: 100%;\n      height: 100vh;   /* fallback for browsers without dvh support */\n      height: 100dvh;\n      /* .cps-modal is content-box by default and carries a 4px top border\n         (desktop rule above); on mobile the height is set explicitly via\n         100vh/100dvh, so with content-box that 4px border adds ON TOP of\n         the viewport-sized height — 4px taller than the viewport, clipping\n         the sticky footer. border-box folds the border into the declared\n         height instead. */\n      box-sizing: border-box;\n      margin: 0;\n      border-radius: 0;\n      border-top-left-radius: 0;\n      border-top-right-radius: 0;\n      display: flex;\n      flex-direction: column;\n      animation: none;\n    }\n    .cps-head {\n      padding: calc(14px + env(safe-area-inset-top)) 16px 12px;\n      flex: 0 0 auto;\n    }\n    .cps-steps {\n      padding: 12px 16px 0;\n      flex: 0 0 auto;\n    }\n    .cps-body {\n      padding: 16px 16px 8px;\n      flex: 1 1 auto;\n      overflow-y: auto;\n      -webkit-overflow-scrolling: touch;\n    }\n    .cps-foot {\n      /* Pinned to the modal bottom by the flex column layout above (.cps-body\n         is the only flexible/scrolling item) — no position:sticky needed\n         since .cps-foot never sits inside the scrolling region. */\n      flex: 0 0 auto;\n      background: var(--cps-bg);\n      padding: 12px 16px calc(14px + env(safe-area-inset-bottom));\n      border-top: 1px solid var(--cps-line);\n    }\n  }";
+  st.textContent = "/* ---- Brand tokens — exact values from cardinalplazashell.com (Duda theme) ---- */\n  :root {\n    --cps-yellow:  #FFD305;   /* Shell yellow — primary CTA fill + border */\n    --cps-red:     #DB1D20;   /* Brand red — accent / focus */\n    --cps-ink:     #060606;   /* Primary text (near-black) */\n    --cps-gray:    #727272;   /* Muted text + headings */\n    /* --cps-gray-strong — derived contrast-safe variant of --cps-gray for\n       SMALL (<=16px) muted text only (v2 Task 13 finding 4). #727272 on\n       --cps-bg (#EEEEEE) computes to 4.15:1 — passes the 3:1 large-text\n       threshold (so headings/.cps-h3 keep --cps-gray unchanged, per design\n       contract) but fails the 4.5:1 AA threshold for normal/small text.\n       #666666 on #EEEEEE clears 4.5:1. Never used for headings. */\n    --cps-gray-strong: #666666;\n    --cps-bg:      #EEEEEE;   /* Page / modal background */\n    --cps-surface: #FFFFFF;   /* Cards / panels (also #F7F7F7 for secondary) */\n\n    --cps-line:    #E4E7EB;   /* Hairline borders */\n    --cps-ok:      #1B8A5A;   /* Success green */\n    --cps-shadow:  0 18px 50px rgba(16, 20, 28, 0.28);\n    --cps-radius:  14px;      /* Modal shell corner */\n    --cps-radius-ctl: 8px;    /* Buttons / inputs / chips */\n    --cps-font:    \"Inter\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif;\n  }\n\n  /* ---- Minimal local-test launcher (not deployed to Duda) ---- */\n  .cps-local-launcher {\n    font-family: var(--cps-font);\n    background: var(--cps-bg);\n    min-height: 100vh;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    margin: 0;\n  }\n\n  /* ---- Modal overlay ---- */\n  .cps-overlay {\n    position: fixed;\n    inset: 0;\n    background: rgba(10, 12, 16, 0.62);\n    backdrop-filter: blur(3px);\n    display: none;\n    align-items: flex-start;\n    justify-content: center;\n    z-index: 99999;\n    padding: 28px 16px;\n    overflow-y: auto;\n  }\n  .cps-overlay.cps-open { display: flex; }\n\n  /* Address autocomplete — PlaceAutocompleteElement (Places API New).\n     The legacy Autocomplete dropdown was a body-appended pac-container that\n     needed a z-index bump above the 99999 overlay; the new element renders\n     its suggestion list inside its OWN shadow DOM, positioned within the\n     element and therefore inside the modal's stacking context — no page CSS\n     is needed for the dropdown, so that stale rule is deleted. Styling goes\n     through the element's documented hooks: standard host properties plus\n     ::part() (input, prediction-list, ...). Matched to the widget's control\n     look (.cps-textarea): 44px height, control radius, Inter, brand line\n     border. NOT matchable (component-internal): the focus ring geometry,\n     the built-in search icon/clear button, and the exact 1.5px inner input\n     border (the host carries the widget border instead). */\n  .cps-addr-ac {\n    display: block;\n    width: 100%;\n    box-sizing: border-box;\n    font-family: var(--cps-font);\n    color-scheme: light;\n    background-color: var(--cps-surface);\n    border: 1.5px solid var(--cps-line);\n    border-radius: var(--cps-radius-ctl);\n  }\n  .cps-addr-ac::part(input) {\n    min-height: 44px;\n    padding: 11px 12px;\n    font-family: var(--cps-font);\n    font-size: 15px;\n    color: var(--cps-ink);\n    border-radius: var(--cps-radius-ctl);\n  }\n  .cps-addr-ac::part(prediction-list) {\n    font-family: var(--cps-font);\n    font-size: 15px;\n    color: var(--cps-ink);\n    border-radius: var(--cps-radius-ctl);\n  }\n\n  /* ---- Modal shell ---- */\n  .cps-modal {\n    font-family: var(--cps-font);\n    background: var(--cps-bg);\n    width: 100%;\n    max-width: 560px;\n    border-radius: var(--cps-radius);\n    border-top: 4px solid var(--cps-yellow);\n    box-shadow: var(--cps-shadow);\n    overflow: hidden;\n    position: relative;\n    animation: cps-pop 0.22s cubic-bezier(0.2, 0.8, 0.25, 1);\n  }\n  @keyframes cps-pop {\n    from { opacity: 0; transform: translateY(14px) scale(0.985); }\n    to   { opacity: 1; transform: none; }\n  }\n\n  /* ---- Modal header ---- */\n  .cps-head {\n    background: var(--cps-surface);\n    color: var(--cps-ink);\n    padding: 16px 22px 13px;\n    position: relative;\n    border-bottom: 1px solid var(--cps-line);\n  }\n  .cps-head .cps-logo {\n    height: 34px;\n    width: auto;\n    display: block;\n    margin: 0 0 7px;\n  }\n  /* Preview feedback round 7 (item 1, the owner): the site itself renders\n     Inter at REGULAR weights, so the widget does too — every font-weight in\n     this stylesheet is 400 except .cps-btn-primary (500, the one deliberate\n     exception: 15px ink on the saturated yellow fill reads washed-out at\n     400; 500 is the lightest weight that anchors the CTA without reading\n     as bold against the site style). */\n  .cps-head .cps-shop {\n    font-size: 15px;\n    font-weight: 400;\n    color: var(--cps-ink);\n    letter-spacing: 0.01em;\n    margin: 0 0 4px;\n  }\n  .cps-head h2 {\n    margin: 0;\n    font-size: 14.5px;\n    font-weight: 400;\n    color: var(--cps-gray);\n  }\n  #cps-h2:focus { outline: none; } /* programmatic focus target only (tabindex=-1) — suppress the default ring; not keyboard-interactive */\n  .cps-x {\n    position: absolute;\n    top: 14px;\n    right: 14px;\n    width: 32px;\n    height: 32px;\n    border-radius: 50%;\n    border: 0;\n    cursor: pointer;\n    background: #EFEFEF;\n    color: #5b5b5b;\n    font-size: 18px;\n    line-height: 1;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    font-family: var(--cps-font);\n  }\n  .cps-x:hover { background: #E2E2E2; color: var(--cps-ink); }\n  /* Tap-target floor (WCAG, >=44x44) — same expanded-hit-area pattern as\n     .cps-step-btn / #cps-wg-info: keep the visible 32px circle, expand only\n     the invisible hit area via an absolutely-positioned ::before (.cps-x is\n     already `position:absolute`, so it's already a positioning context —\n     no change needed there). .cps-x sits alone in the header corner (no\n     adjacent interactive control), so the wider invisible hit area can't\n     overlap another target. */\n  .cps-x::before {\n    content: \"\";\n    position: absolute;\n    top: 50%;\n    left: 50%;\n    width: 44px;\n    height: 44px;\n    transform: translate(-50%, -50%);\n  }\n\n  /* ---- Step progress dots ---- */\n  /* 1b redesign: #cps-steps is now a block containing the bar row\n     (.cps-steps-bars) plus the caption line below it, so the flex row moves\n     to the inner wrapper. */\n  .cps-steps {\n    display: block;\n    padding: 14px 22px 0;\n  }\n  .cps-steps-bars {\n    display: flex;\n    gap: 6px;\n  }\n  /* Stepper caption (1b): names the current step and previews the next one —\n     \"STEP 2 OF 6 · TIME · NEXT: VERIFY YOUR NUMBER\". Plain '·' separators. */\n  .cps-step-caption {\n    margin: 8px 0 0;\n    font-size: 11px;\n    color: var(--cps-gray-strong);\n    letter-spacing: 0.06em;\n    text-transform: uppercase;\n  }\n\n  /* ---- Step progress dots as buttons (v2 Task 10 — clickable stepper) ----\n     The visible bar stays a thin 5px strip (unchanged look — see Task 12's\n     \"no visual redesign\" constraint); tap-target compliance (>=44x44, per\n     spec §10) is met with an invisible ::before that expands the hit area\n     without inflating the strip itself. */\n  .cps-step-btn {\n    appearance: none;\n    -webkit-appearance: none;\n    position: relative;\n    height: 5px;\n    flex: 1;\n    border: 0;\n    border-radius: 999px;\n    background: var(--cps-line);\n    transition: background 0.25s;\n    padding: 0;\n    margin: 0;\n    cursor: pointer;\n    font-family: var(--cps-font);\n  }\n  .cps-step-btn::before {\n    content: \"\";\n    position: absolute;\n    left: 0;\n    right: 0;\n    top: 50%;\n    transform: translateY(-50%);\n    min-height: 44px;\n  }\n  .cps-step-btn.cps-done   { background: #AB0000; cursor: pointer; }\n  .cps-step-btn.cps-active { background: var(--cps-red); cursor: default; }\n  .cps-step-btn:disabled   { cursor: default; }\n  .cps-step-btn.cps-done:hover { background: var(--cps-red); }\n  .cps-step-btn:disabled:not(.cps-active) { background: var(--cps-line); }\n\n  /* ---- Visually hidden (a11y live region + step-button labels) ---- */\n  .cps-sr-only {\n    position: absolute;\n    width: 1px;\n    height: 1px;\n    padding: 0;\n    margin: -1px;\n    overflow: hidden;\n    clip: rect(0, 0, 0, 0);\n    white-space: nowrap;\n    border: 0;\n  }\n\n  /* ---- Modal body + footer ---- */\n  .cps-body {\n    padding: 20px 22px 8px;\n    min-height: 230px;\n  }\n  .cps-foot {\n    display: flex;\n    gap: 10px;\n    align-items: center;\n    padding: 16px 22px 20px;\n  }\n\n  /* ---- Headings (gray, per design contract) ----\n     clamp() type scale (spec §10): desktop keeps today's exact sizes (the\n     clamp() max is each rule's pre-existing value, so >480px is visually\n     unchanged); the min is a readable floor for narrow phones, with the\n     viewport-relative middle term doing the fluid scaling in between. */\n  .cps-body h3 {\n    margin: 0 0 6px;\n    font-size: clamp(17px, 4.5vw, 20px);\n    font-weight: 400;\n    color: var(--cps-gray);\n    text-transform: uppercase;\n    letter-spacing: 0.03em;\n  }\n  .cps-steptitle {\n    font-size: clamp(19px, 5vw, 22px);\n    font-weight: 400;\n    margin: 0 0 4px;\n    color: var(--cps-gray);\n  }\n  .cps-stepsub {\n    font-size: clamp(12.5px, 3.4vw, 13.5px);\n    line-height: 1.5;\n    /* Small (<=16px) muted text — uses the AA-safe --cps-gray-strong, not\n       --cps-gray (v2 Task 13 finding 4; see :root for the contrast math). */\n    color: var(--cps-gray-strong);\n    margin: 0 0 18px;\n  }\n\n  /* ============================================================================\n     1b SECTIONED REDESIGN — shared components (design handoff\n     design_handoff_booking_widget_1b). Every content zone is a white SECTION\n     CARD with a small uppercase title; nothing floats directly on the gray\n     modal background.\n     ============================================================================ */\n  .cps-section {\n    background: var(--cps-surface);\n    border: 1.5px solid var(--cps-line);\n    border-radius: var(--cps-radius-ctl);\n    padding: 14px;\n    margin-bottom: 12px;\n  }\n  .cps-section-title {\n    margin: 0 0 10px;\n    font-size: 11px;\n    color: var(--cps-gray);\n    letter-spacing: 0.06em;\n    text-transform: uppercase;\n    font-weight: 400;\n  }\n  /* Emphasis variant — the \"Your visit so far\" basket card. */\n  .cps-section--em { border: 2px solid var(--cps-yellow); }\n\n  /* Full-width toggle tile (visit-type cards, ride, WG attestation, recs):\n     selection is conveyed by COLOR only (white -> yellow fill via .cps-sel);\n     tiles never resize on selection. Carries aria-pressed in the markup. */\n  .cps-tile {\n    display: block;\n    width: 100%;\n    text-align: left;\n    padding: 12px 14px;\n    font-size: 14px;\n    line-height: 1.45;\n  }\n  .cps-tile-title { display: block; font-size: 15px; }\n  .cps-tile-desc  { display: block; font-size: 12px; color: var(--cps-gray-strong); margin-top: 2px; line-height: 1.45; }\n  .cps-btn-ghost.cps-sel .cps-tile-desc,\n  .cps-btn-ghost.cps-sel .cps-tile-sub { color: #5b5b5b; }\n  .cps-tile-sub { display: block; font-size: 12px; color: var(--cps-gray-strong); margin-top: 2px; }\n  /* Disabled/unavailable tile: never a yellow border on something unclickable. */\n  .cps-btn-ghost.cps-tile:disabled,\n  .cps-btn-ghost.cps-tile:disabled:hover {\n    border-color: var(--cps-line);\n    color: #9a9a9a;\n    background: var(--cps-surface);\n    cursor: not-allowed;\n  }\n  .cps-btn-ghost.cps-tile:disabled .cps-tile-desc { color: #b0b0b0; }\n\n  /* Underlined text-link button (basket Remove, Resend code, Change number,\n     review-row Edit) — plain text affordances, not boxed buttons. */\n  .cps-linkbtn {\n    appearance: none;\n    background: none;\n    border: 0;\n    padding: 6px 2px;\n    font-family: var(--cps-font);\n    font-size: 13px;\n    color: var(--cps-gray);\n    text-decoration: underline;\n    cursor: pointer;\n  }\n  .cps-linkbtn:hover { color: var(--cps-ink); }\n\n  /* Error line (verify step) — red, 12px. */\n  .cps-err {\n    font-size: 12px;\n    color: var(--cps-red);\n    margin-top: 6px;\n  }\n\n  /* Calendar week (1b): MON-SUN letters row + 44px date squares, chevron\n     week nav in the section-title row. */\n  .cps-cal-head {\n    display: flex;\n    align-items: center;\n    justify-content: space-between;\n    margin: 0 0 10px;\n  }\n  .cps-cal-head .cps-section-title { margin: 0; }\n  .cps-cal-nav { display: flex; gap: 6px; }\n  .cps-wk-btn {\n    width: 32px;\n    height: 32px;\n    min-width: 32px;\n    min-height: 32px;\n    padding: 0;\n    border-radius: 50%;\n    font-size: 15px;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    position: relative;\n  }\n  /* Expanded invisible hit area (same pattern as .cps-x) so the visible\n     32px circle still meets the 44px tap-target floor. */\n  .cps-wk-btn::before {\n    content: \"\";\n    position: absolute;\n    top: 50%;\n    left: 50%;\n    width: 44px;\n    height: 44px;\n    transform: translate(-50%, -50%);\n  }\n  .cps-cal-dow {\n    font-size: 10px;\n    color: #9a9a9a;\n    text-align: center;\n    letter-spacing: 0.04em;\n  }\n\n  /* ---- Primary CTA button: yellow fill, 2px solid yellow border, 8px radius, ink text ---- */\n  /* hover inverts: white fill, yellow border, ink text */\n  .cps-btn {\n    appearance: none;\n    font-family: var(--cps-font);\n    cursor: pointer;\n    border-radius: var(--cps-radius-ctl);\n    font-size: 15px;\n    font-weight: 400;\n    padding: 12px 20px;\n    border: 2px solid transparent;\n    transition: transform 0.1s, background 0.12s, border-color 0.12s, color 0.12s;\n    /* Tap target floor (spec §10) — .cps-btn is the shared base for\n       .cps-btn-primary/.cps-btn-ghost, which in turn cover day buttons\n       (.cps-day-opt) and time-slot buttons (.cps-slot); one rule here\n       covers all of them without a visual redesign (padding already gets\n       most of the way there — this just guarantees the floor). */\n    min-height: 44px;\n    min-width: 44px;\n    box-sizing: border-box;\n  }\n  .cps-btn:active { transform: translateY(1px); }\n\n  /* PRIMARY button — matches the site theme's Primary style exactly:\n     yellow fill, 2px yellow border, black Inter text, centered, 17px, and\n     the site's signature HOVER INVERSION to a white fill (border + text\n     hold). Weight is REGULAR (400) to match the site's own button, which is\n     not bold (owner request); at 17px black on yellow stays legible. This\n     retires the last >400 weight — the whole widget is now Inter 400. */\n  .cps-btn-primary {\n    background: var(--cps-yellow);\n    color: var(--cps-ink);\n    border-color: var(--cps-yellow);\n    flex: 1;\n    font-size: 17px;\n    font-weight: 400;\n    text-align: center;\n  }\n  .cps-btn-primary:hover {\n    background: var(--cps-surface);\n    border-color: var(--cps-yellow);\n    color: var(--cps-ink);\n  }\n  .cps-btn-primary:disabled {\n    background: #F4E08C;\n    border-color: #F4E08C;\n    color: #8a8460;\n    cursor: not-allowed;\n  }\n\n  /* SECONDARY button (.cps-btn-ghost) — matches the site theme's Secondary\n     style: WHITE fill, 2px YELLOW border, black Inter text, and the hover\n     INVERSION to a yellow fill (border + text hold). This is the widget's\n     every-other-button style (Back, day tiles, time slots, handling options,\n     service tiles, add-another, week nav, Remove). Selected day/slot uses\n     .cps-sel (yellow fill) below. Disabled ghosts (unavailable/pending days,\n     capped week nav) drop to a MUTED gray outline so they never read as an\n     active yellow-bordered option. */\n  .cps-btn-ghost {\n    background: var(--cps-surface);\n    color: var(--cps-ink);\n    border-color: var(--cps-yellow);\n  }\n  .cps-btn-ghost:hover {\n    background: var(--cps-yellow);\n    border-color: var(--cps-yellow);\n    color: var(--cps-ink);\n  }\n  .cps-btn-ghost:disabled,\n  .cps-btn-ghost:disabled:hover {\n    background: var(--cps-surface);\n    border-color: var(--cps-line);\n    color: var(--cps-gray);\n    cursor: not-allowed;\n  }\n\n  /* ---- Skip link (Help + Recommended step footers) — was inline-styled\n     identically in both places (v2 Task 9 leftover); defined once here\n     (v2 Task 12 absorbed minor). Same visual as before, plus a proper\n     inline-flex + min-height so the tap target meets the 44px floor. ---- */\n  .cps-skip {\n    display: inline-flex;\n    align-items: center;\n    font-size: 13.5px;\n    color: var(--cps-gray);\n    text-decoration: underline;\n    padding: 8px 4px;\n    white-space: nowrap;\n    min-height: 44px;\n    box-sizing: border-box;\n  }\n\n  /* ---- Selected state (day/time picks): filled yellow, same as primary CTA, ---- */\n  /* so the chosen day/slot reads as \"active\" against the outlined ghost options. */\n  .cps-btn-ghost.cps-sel,\n  .cps-btn-ghost.cps-sel:hover {\n    background: var(--cps-yellow);\n    border-color: var(--cps-yellow);\n    color: var(--cps-ink);\n    font-weight: 400; /* round 7 (item 4): selection is conveyed by COLOR only — no weight change, so the tile never resizes */\n  }\n\n  /* ---- Owner tweak (2026-07-07): toggle tiles read NEUTRAL until selected ----\n     The .cps-tile group — visit-type tiles, the Need-a-ride toggle, the\n     White-Glove attestation, and the recommendation tiles — now defaults to a\n     gray hairline border. Yellow signals an ACTUAL choice, not a resting\n     default; selection (.cps-sel, above) still fills yellow. Day squares\n     (.cps-day-opt), time slots (.cps-slot), and service quick-picks\n     (.cps-svc-tile) are NOT .cps-tile, so they keep the yellow secondary-button\n     border unchanged. Hover stays subtle (gray border, white fill — never\n     yellow) so a tile only turns yellow once it's chosen. Disabled tiles keep\n     their own muted rule above. */\n  .cps-btn-ghost.cps-tile:not(.cps-sel) {\n    border-color: var(--cps-line);\n  }\n  .cps-btn-ghost.cps-tile:not(.cps-sel):not(:disabled):hover {\n    background: var(--cps-surface);\n    border-color: var(--cps-gray);\n    color: var(--cps-ink);\n  }\n\n  /* ---- Day squares (1b compact calendar week) ----\n     Every tile has IDENTICAL fixed dimensions, always (round 7 item 4 —\n     carried forward): a fixed 44px square showing only the date number, so\n     selecting a day or painting availability can never change any tile's\n     box. The per-tile \"Not available\" sublabel is RETIRED (1b) — the\n     unavailable state is the gray border + #c2c2c2 text, and the non-visual\n     signal is the aria-label (\"Monday, July 6, not available\") painted by\n     paintDayButtons. */\n  .cps-day-opt {\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    height: 44px;\n    min-width: 0;\n    padding: 0;\n    font-size: 14px;\n  }\n  .cps-day-unavail,\n  .cps-day-unavail:hover {\n    border-color: var(--cps-line);\n    color: #c2c2c2;\n    background: var(--cps-surface);\n    cursor: not-allowed;\n  }\n  /* The neutral \"pending\" state every day tile renders in while the\n     availability fetch is in flight — disabled, sublabel line reserved but\n     EMPTY (no \"Not available\" yet; the one-pass paint fills it).\n     Round 8 (item 3): a subtle shimmer/pulse (the SAME cps-skel-pulse the\n     round-7 service skeletons used, brand-neutral) so the grid reads as\n     INTENTIONALLY LOADING rather than as broken, unclickable dates. The\n     fixed tile geometry is untouched — .cps-day-opt keeps its min-height and\n     the reserved sublabel line, so nothing resizes when the verdict lands\n     (paintDayButtons removes .cps-day-pending in one pass). The date label\n     stays visible under the pulse (cleaner than hiding it). Static under\n     prefers-reduced-motion (fallback below). */\n  .cps-day-pending {\n    cursor: default;\n    /* Soft gray FILL (not just an opacity fade) so a loading tile can never\n       be confused with .cps-day-unavail's flat white + gray-border look. */\n    background: #E9E9E9;\n    border-color: var(--cps-line);\n    color: var(--cps-gray);\n    animation: cps-skel-pulse 1.2s ease-in-out infinite;\n  }\n  @media (prefers-reduced-motion: reduce) {\n    .cps-day-pending { animation: none; }\n  }\n\n  /* ---- Shared loading status line (loading-ux plan Task 1): the ONE\n     loading treatment for every \"waiting on data\" text in the widget.\n     Muted gray (.cps-hint base supplies size/color), with a three-dot\n     ellipsis animated via ::after so copy stays static (\"Checking available\n     days\" + animated \"...\"). Static single ellipsis under\n     prefers-reduced-motion. Loading is never red. ---- */\n  .cps-loading::after {\n    content: \"\";\n    animation: cps-loading-dots 1.5s steps(4, end) infinite;\n  }\n  @keyframes cps-loading-dots {\n    0%   { content: \"\"; }\n    25%  { content: \".\"; }\n    50%  { content: \"..\"; }\n    75%  { content: \"...\"; }\n  }\n  @media (prefers-reduced-motion: reduce) {\n    .cps-loading::after { content: \"…\"; animation: none; }\n  }\n\n  /* ---- Slot-chip skeletons (loading-ux plan Task 2): same footprint as a\n     real .cps-slot chip so the row doesn't jump when times land. ---- */\n  .cps-slot-skel {\n    display: inline-block;\n    width: 84px;\n    height: 44px;\n    border-radius: 8px;\n    background: #E9E9E9;\n    animation: cps-skel-pulse 1.2s ease-in-out infinite;\n  }\n  @media (prefers-reduced-motion: reduce) {\n    .cps-slot-skel { animation: none; }\n  }\n\n  /* ---- Week grid (1b compact calendar): ALWAYS 7 equal columns, Mon..Sun —\n     a real calendar row (weekday letters + 44px date squares). The compact\n     squares fit 7-up at every supported width, so the old 4-column mobile\n     reflow is retired. ---- */\n  .cps-days-grid {\n    display: grid;\n    grid-template-columns: repeat(7, minmax(0, 1fr));\n    gap: 6px;\n    text-align: center;\n  }\n\n  /* ---- Wait-appointment time slots: a wrapping row with proper spacing\n     between each time (owner request), same 8px rhythm as the day grid. ---- */\n  #cps-slots {\n    display: flex;\n    flex-wrap: wrap;\n    gap: 8px;\n    margin-top: 6px;\n  }\n\n  /* ---- Quick-pick service tiles (preview feedback round 5): one tappable\n     tile per bookable service, wrapping row, brand ghost-button styling,\n     44px+ tap targets via the .cps-btn floor. ---- */\n  .cps-svc-tiles {\n    display: flex;\n    flex-wrap: wrap;\n    gap: 8px;\n    margin-top: 6px;\n  }\n  .cps-svc-tile {\n    flex: 0 1 auto;\n    font-size: 14px;\n    padding: 10px 14px;\n  }\n\n  /* ---- Non-bookable info tiles (VA Safety / Emissions inspection): live in\n     the Popular-services row so customers find them where they look, but they\n     never enter the basket — a tap opens an advisory panel instead. Styled\n     with a NEUTRAL gray outline (not the bookable tiles' yellow border) so\n     they never read as a selectable service; a tap that opens the panel\n     leaves a subtle filled/gray-border active state. ---- */\n  .cps-btn-ghost.cps-svc-tile--info {\n    border-color: var(--cps-line);\n    color: var(--cps-gray);\n  }\n  .cps-btn-ghost.cps-svc-tile--info:hover {\n    background: var(--cps-surface);\n    border-color: var(--cps-gray);\n    color: var(--cps-ink);\n  }\n  .cps-btn-ghost.cps-svc-tile--info[aria-pressed=\"true\"],\n  .cps-btn-ghost.cps-svc-tile--info[aria-pressed=\"true\"]:hover {\n    background: #F7F7F7;\n    border-color: var(--cps-gray);\n    color: var(--cps-ink);\n  }\n\n  /* ---- Shimmer/pulse keyframe (round 8 item 3): the brand-neutral loading\n     pulse. Round 7 used it on Popular-services SKELETON tiles; round 8 seeds\n     those tiles from CONFIG.popularServices so they render real from the\n     first paint (no service skeletons anymore), and this keyframe now drives\n     the DAY-GRID pending shimmer (.cps-day-pending above) — the one place\n     the customer waits on a live read. A gentle opacity pulse, disabled\n     under prefers-reduced-motion where it is declared. ---- */\n  @keyframes cps-skel-pulse {\n    0%, 100% { opacity: 1; }\n    50%      { opacity: 0.55; }\n  }\n\n  /* ---- Free-text inputs inside question/form cards (preview feedback\n     round 5, owner screenshot): an inline width:100% input with its own\n     padding + border overflows its card without border-box — pin every\n     .cps-field input (and the \"Something else\" input specifically) to the\n     card's box. ---- */\n  #cps-intake-other,\n  .cps-field input {\n    max-width: 100%;\n    box-sizing: border-box;\n  }\n\n  /* ---- Form fields ---- */\n  .cps-field { margin-bottom: 14px; }\n  .cps-field label {\n    display: block;\n    font-size: 12.5px;\n    font-weight: 400;\n    color: var(--cps-ink);\n    margin-bottom: 5px;\n  }\n\n  /* ---- Checkbox label rows (WG attest, ride, inspection add-on, intake\n     multi-choice) — the whole row is the clickable target, so it gets the\n     tap-target floor, not just the 16x16 checkbox itself. ---- */\n  .cps-check-row { min-height: 44px; box-sizing: border-box; }\n\n  .cps-textarea {\n    width: 100%;\n    box-sizing: border-box;\n    font-family: var(--cps-font);\n    font-size: 15px;\n    color: var(--cps-ink);\n    background: var(--cps-surface);\n    border: 1.5px solid var(--cps-line);\n    border-radius: var(--cps-radius-ctl);\n    padding: 11px 12px;\n    transition: border-color 0.12s;\n    resize: vertical;\n    min-height: 90px;\n  }\n  .cps-textarea:focus {\n    outline: none;\n    border-color: var(--cps-red);\n  }\n  .cps-hint {\n    font-size: 12px;\n    /* Small (<=16px) muted text — uses the AA-safe --cps-gray-strong, not\n       --cps-gray (v2 Task 13 finding 4; see :root for the contrast math). */\n    color: var(--cps-gray-strong);\n    margin-top: 6px;\n  }\n\n  /* ---- OTP PIN entry (4 boxes, one digit each) ---- */\n  .cps-pin-row { display: flex; gap: 10px; margin-top: 6px; }\n  .cps-pin-box {\n    width: 48px;\n    height: 56px;\n    min-height: 44px;\n    min-width: 44px;\n    box-sizing: border-box;\n    font-family: var(--cps-font);\n    font-size: 22px;\n    font-weight: 400;\n    text-align: center;\n    color: var(--cps-ink);\n    background: var(--cps-surface);\n    border: 1.5px solid var(--cps-line);\n    border-radius: var(--cps-radius-ctl);\n    transition: border-color 0.12s;\n  }\n  .cps-pin-box:focus {\n    outline: none;\n    border-color: var(--cps-red);\n  }\n\n  /* ---- Stub step placeholder ---- */\n  .cps-stub {\n    padding: 32px 0 8px;\n    text-align: center;\n    font-size: 14px;\n    color: var(--cps-gray);\n  }\n\n  /* ---- Confirm step: review rows (label/value pairs, no price) ---- */\n  .cps-review {\n    background: var(--cps-surface);\n    border: 1.5px solid var(--cps-line);\n    border-radius: var(--cps-radius-ctl);\n    padding: 4px 14px;\n  }\n  .cps-review-row {\n    display: flex;\n    justify-content: space-between;\n    align-items: baseline;\n    gap: 14px;\n    padding: 11px 0;\n    border-bottom: 1px solid var(--cps-line);\n  }\n  .cps-review-row:last-child { border-bottom: none; }\n  .cps-review-label {\n    font-size: 12.5px;\n    font-weight: 400;\n    color: var(--cps-gray);\n    white-space: nowrap;\n  }\n  .cps-review-value {\n    flex: 1; /* 1b: rows gained a third (Edit-link) column — the value still fills the middle, right-aligned */\n    font-size: 14.5px;\n    color: var(--cps-ink);\n    text-align: right;\n  }\n\n  /* ---- Spinner ---- */\n  .cps-spinner {\n    width: 18px;\n    height: 18px;\n    border: 2.5px solid rgba(6, 6, 6, 0.2);\n    border-top-color: var(--cps-ink);\n    border-radius: 50%;\n    display: inline-block;\n    animation: cps-spin 0.7s linear infinite;\n    vertical-align: -3px;\n    margin-right: 8px;\n  }\n  @keyframes cps-spin { to { transform: rotate(360deg); } }\n\n  /* ---- Indeterminate progress (intake pending — preview feedback round 2).\n     Brand yellow sweep on the page-gray track, slim (4px). CSS-only; under\n     prefers-reduced-motion the sweep is replaced by a static filled track\n     (state is still conveyed by the \"One moment...\" text + announce()). ---- */\n  .cps-progress {\n    height: 4px;\n    max-width: 320px;\n    background: var(--cps-bg);\n    border-radius: 2px;\n    overflow: hidden;\n  }\n  .cps-progress-bar {\n    height: 100%;\n    width: 40%;\n    background: var(--cps-yellow);\n    border-radius: 2px;\n    animation: cps-progress-slide 1.2s ease-in-out infinite;\n  }\n  @keyframes cps-progress-slide {\n    0%   { transform: translateX(-100%); }\n    100% { transform: translateX(350%); }\n  }\n  @media (prefers-reduced-motion: reduce) {\n    .cps-progress-bar { animation: none; width: 100%; }\n  }\n\n  /* ---- Success ---- */\n  .cps-success {\n    text-align: center;\n    padding: 32px 16px 16px;\n  }\n  .cps-success .cps-circle {\n    width: 66px;\n    height: 66px;\n    border-radius: 50%;\n    background: rgba(27, 138, 90, 0.12);\n    color: var(--cps-ok);\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    font-size: 28px;\n    font-weight: 400;\n    margin: 0 auto 16px;\n  }\n  .cps-success h3 {\n    margin: 0 0 8px;\n    font-size: 21px;\n    font-weight: 400;\n    color: var(--cps-ink);\n    text-transform: none;\n    letter-spacing: 0;\n  }\n  .cps-success p {\n    margin: 0 auto 6px;\n    font-size: 14.5px;\n    /* Small (<=16px) muted text — uses the AA-safe --cps-gray-strong, not\n       --cps-gray (v2 Task 13 finding 4; see :root for the contrast math). */\n    color: var(--cps-gray-strong);\n    max-width: 380px;\n    line-height: 1.5;\n  }\n\n  /* ============================================================================\n     RESPONSIVE — small phones (spec §10). Desktop (>480px) is the existing\n     centered card, untouched above this block. Below 480px the modal goes\n     near-full-screen: header + stepper stay visible, the body region\n     (#cps-bodyc) is the sole scroll container, and the footer CTA docks to\n     the bottom of the modal with safe-area padding so it clears notches/\n     home-indicators on notched phones.\n\n     Scroll-container contract: .cps-body is the ONLY thing that scrolls on\n     mobile. .cps-modal is sized to the viewport (100dvh) with\n     `display:flex;flex-direction:column`; .cps-head/.cps-steps/.cps-foot\n     are `flex:0 0 auto` (fixed size) and .cps-body is `flex:1 1 auto;\n     overflow-y:auto` (the only item that grows/scrolls). Because .cps-foot\n     is a normal flex sibling — not position:fixed/absolute — it always\n     reserves its own space below .cps-body; there's no overlap to guard\n     against with synthetic bottom-padding on .cps-body, so none is added.\n     visualViewport (below, feature-detected) only needs to nudge\n     .cps-body's scroll position when the soft keyboard opens, not touch\n     this padding contract.\n     ============================================================================ */\n  @media (max-width: 480px) {\n    .cps-overlay {\n      padding: 0;\n      align-items: stretch;\n    }\n    .cps-modal {\n      max-width: 100%;\n      height: 100vh;   /* fallback for browsers without dvh support */\n      height: 100dvh;\n      /* .cps-modal is content-box by default and carries a 4px top border\n         (desktop rule above); on mobile the height is set explicitly via\n         100vh/100dvh, so with content-box that 4px border adds ON TOP of\n         the viewport-sized height — 4px taller than the viewport, clipping\n         the sticky footer. border-box folds the border into the declared\n         height instead. */\n      box-sizing: border-box;\n      margin: 0;\n      border-radius: 0;\n      border-top-left-radius: 0;\n      border-top-right-radius: 0;\n      display: flex;\n      flex-direction: column;\n      animation: none;\n    }\n    .cps-head {\n      padding: calc(14px + env(safe-area-inset-top)) 16px 12px;\n      flex: 0 0 auto;\n    }\n    .cps-steps {\n      padding: 12px 16px 0;\n      flex: 0 0 auto;\n    }\n    .cps-body {\n      padding: 16px 16px 8px;\n      flex: 1 1 auto;\n      overflow-y: auto;\n      -webkit-overflow-scrolling: touch;\n    }\n    .cps-foot {\n      /* Pinned to the modal bottom by the flex column layout above (.cps-body\n         is the only flexible/scrolling item) — no position:sticky needed\n         since .cps-foot never sits inside the scrolling region. */\n      flex: 0 0 auto;\n      background: var(--cps-bg);\n      padding: 12px 16px calc(14px + env(safe-area-inset-bottom));\n      border-top: 1px solid var(--cps-line);\n    }\n  }";
   (document.head || document.documentElement).appendChild(st);
 })();
 
@@ -43,6 +43,7 @@ const CONFIG = {
   intakeMaxQuestions:   6,
   intakeTimeoutMs:      20000,         // live intake fetch abort bound — past it, honest degrade (never a hang)
   avgMilesPerDay:       37,
+  historyRecs:          true,          // Layer B kill switch: false = Extras uses the generic matrix only
   maintenanceMatrix:    [],            // populated from settings at runtime
   services:             [],            // populated from settings at runtime
   /* popularServiceNames — preview feedback round 7 (item 2): the CURATED
@@ -200,8 +201,14 @@ const CONFIG = {
   // rough sync with the AVAIL_CFG_ defaults for a faithful demo, but the
   // relay's LANE_CAPS is the source of truth in production.
   navyCap:              { wkdy: 11, sat: 7, sun: 5 },
-  greenHours:           { wkdy: { start: "08:00", close: "18:00" }, sat: { start: "08:00", close: "14:00" }, sun: { start: "09:00", close: "14:00" } },
+  greenHours:           { wkdy: { start: "08:00", close: "17:00" }, sat: { start: "08:00", close: "14:00" }, sun: { start: "09:00", close: "14:00" } },
   redCap:               { weekday: 20, sat: 5 },
+  /* defaultApptMinutes / blockWindow — mirror relay-logic (Task 7). Navy's
+     block-span unit is the 60-min shop default appointment; blockWindow is the
+     per-day-class clip window for "no"-block span subtraction (lane-blocks
+     spec §2.3). Red/purple subtract on their native 30-min half-hour unit. */
+  defaultApptMinutes:   60,
+  blockWindow:          { wkdy: { start: "07:00", close: "17:00" }, sat: { start: "07:00", close: "14:00" }, sun: { start: "09:00", close: "14:00" } },
   whiteGlove:           { radiusMiles: 5, capPerDay: 4, weekdaysOnly: true, freeWithService: true, marker: "***WHITE GLOVE SERVICE***" },
   /* ride — preview feedback round 3: the ONE drop-off checkbox ("I would
      like a ride to home, work, etc. (within N miles)") that replaced the
@@ -212,10 +219,12 @@ const CONFIG = {
   dropCutoff:           "09:00",
   noMorePattern:        /no more/i,
   /* mockCalendar — v2 Task 4 pure availability engine's deterministic seed
-     data: { 'YYYY-MM-DD': { navy, greenTaken:['HH:MM'], red, purple, noMore } }.
-     Absent day = empty (all counters 0, greenTaken:[], noMore:null). Tests
-     set this directly; the live engine (Task 16) replaces the *provider*,
-     not this shape. */
+     data: { 'YYYY-MM-DD': { navy, greenTaken:['HH:MM'], red (WEIGHTED
+     half-hour units), purple, blocks:{red,navy,purple,green} } }, where each
+     blocks[lane] is a list of {start:'HH:MM', end:'HH:MM'} "no"-block spans
+     (lane-blocks spec §2.3). Absent day = empty (all counters 0,
+     greenTaken:[], blocks all empty). Tests set this directly; the live
+     engine (Task 16) replaces the *provider*, not this shape. */
   mockCalendar:         {},
   inspection:           {
     showFee: false,
@@ -239,6 +248,7 @@ const CONFIG = {
   colorHexMap:          {},
   unknownLightBlueLane: "navy",
   availabilityCacheTtl: 90,
+  availPrefetchCacheMax: 4,
 
   /* _mockSlotGone — test-only escape hatch (v2 Task 11). When true, the mock
      createBooking() rejects with {code:'SLOT_GONE'} instead of resolving, so
@@ -290,7 +300,8 @@ const S = {
   sched:     { handling: "", date: "", slot: "", afterHours: false, courtesy: false, ride: false, wgAttested: false }, // handling starts UNSELECTED (owner 2026-07-07): no visit type is pre-highlighted — all three tiles read white until the customer picks one
   timeAnchor: "", // 'YYYY-MM-DD' — start of the visible 7-day week window on the Time step; "" until renderTime first sets it
   _availPreload: null, // { key, promise } — the mount-time availability preload (preview feedback round 3); consumed once by drawSlots when the key still matches, null otherwise. See preloadAvailability().
-  _availCache: null, // { key, days } — the last SUCCESSFUL week-availability response, keyed by _cpsAvailabilityKey. drawSlots reuses it synchronously when the key still matches (e.g. picking a day within the same week), so a day-pick repaints instantly with NO loading flash and NO day-grid pending shimmer. Invalidated by explicit retry and slot-gone recovery; week-nav/handling/lane/service changes re-key on their own.
+  _availCache: { entries: {}, order: [] }, // keyed week-availability cache (LRU, cap CONFIG.availPrefetchCacheMax). entries[key]=days map; order = most-recent-last. Replaces the old single {key,days} slot so the NEXT week can be prefetched after each paint (loading-ux plan Task 4). Invalidation: explicit retry and slot-gone recovery clear the WHOLE map (availCacheClear); handling/lane/service changes re-key on their own.
+  _availInflight: {}, // key -> in-flight availability Promise; dedupes the visible fetch against the background prefetch of the same week
   otp:       { sessionId: "", code: "", verified: false, account: null, phone: "" },
   /* customerInfo — v2 Task 19: NEW-customer identity, captured on the Vehicle
      step ("Tell us about yourself") when the verified account is
@@ -303,8 +314,8 @@ const S = {
      why-hint, not the requirement). State defaults to VA (the shop's home
      state), plain strings otherwise. */
   customerInfo: { firstName: "", lastName: "", email: "", address1: "", city: "", state: "VA", zip: "" },
-  vehicle:   { tekVehicleId: null, year: "", make: "", model: "", makeId: null, makeName: "", modelId: null, modelName: "", mileage: "", plate: "", recommendedServices: [] },
-  recs:      { declined: [], recommended: [], selected: [] },
+  vehicle:   { tekVehicleId: null, year: "", make: "", model: "", makeId: null, makeName: "", modelId: null, modelName: "", mileage: "", plate: "", recommendedServices: [], history: null, estimatedMileage: null },
+  recs:      { declined: [], recommended: [], selected: [], clearwayDue: null, clearwayLoading: false }, // clearwayDue: null = not yet fetched, [] = fetched-empty (Card 2 is Clearway-sourced — see loadRecs/fetchRecommendations)
   inspection: { types: { safety: false, emissions: false }, intent: false, eligible: false, added: false, optedOut: false, _prevEligible: false }, // v2 Task 7 — derived by recomputeInspection(); optedOut is internal (see _cpsInspToggle). _prevEligible is internal (v2 Task 8 — tracks the last-computed eligible value so recomputeInspection() can detect a false->true transition and reset optedOut). types: the customer's explicit Help-step tile picks (safety/emissions), independently selectable — the ONE source for which inspections ride the visit; intent stays true if the AI intake flagged a basket entry too. Cleared by recompute when the visit has nothing bookable to attach to (inspections are never standalone).
   submitting: false,
   otpBusy:    false, // v2 Task 17 fix pass — true while an otpSend/otpVerify is in flight from _cpsVerifyPrimary (the S.submitting discipline: re-entrant taps are ignored until the provider settles)
@@ -2081,7 +2092,7 @@ function renderHelp(body, foot, h2) {
   var pendingHtml = S.intake.pending
     ? `<div id="cps-intake-pending" style="margin-top:12px">
         <div class="cps-progress" aria-hidden="true"><div class="cps-progress-bar"></div></div>
-        <p class="cps-hint" style="margin-top:6px">One moment...</p>
+        <p class="cps-hint cps-loading" style="margin-top:6px">One moment</p>
       </div>`
     : '';
 
@@ -2598,11 +2609,47 @@ function mockCalendarDay(ymd) {
   return {
     navy:       rec.navy || 0,
     greenTaken: rec.greenTaken || [],
-    red:        rec.red || 0,
+    red:        rec.red || 0,        // WEIGHTED half-hour units (lane-blocks spec §2.2)
     purple:     rec.purple || 0,
-    noMore:     rec.noMore != null ? rec.noMore : null,
+    blocks:     rec.blocks || { red: [], navy: [], purple: [], green: [] },
   };
 }
+
+/* blockedUnits(spans, window, unitMinutes) -> integer units removed by "no"
+   blocks (lane-blocks spec §2.3). Mirrors relay-logic's blockedUnits: union
+   the spans (they may overlap), clip each merged span to
+   [window.start, window.close], sum covered minutes, floor to whole units.
+   Pure; tolerant of empty/absent inputs. */
+function blockedUnits(spans, window, unitMinutes) {
+  function toMin(hhmm) {
+    var p = String(hhmm).split(":").map(function(x) { return parseInt(x, 10); });
+    return p[0] * 60 + p[1];
+  }
+  var list = (spans || []).map(function(s) {
+    return { start: toMin(s.start), end: toMin(s.end) };
+  }).filter(function(s) {
+    return s.end > s.start;
+  }).sort(function(a, b) {
+    return a.start - b.start;
+  });
+  if (list.length === 0 || !window) return 0;
+  var winStart = toMin(window.start);
+  var winClose = toMin(window.close);
+  // merge overlapping/adjacent spans
+  var merged = [];
+  for (var i = 0; i < list.length; i++) {
+    var s = list[i];
+    var last = merged[merged.length - 1];
+    if (last && s.start <= last.end) last.end = Math.max(last.end, s.end);
+    else merged.push({ start: s.start, end: s.end });
+  }
+  var covered = 0;
+  for (var j = 0; j < merged.length; j++) {
+    covered += Math.max(0, Math.min(merged[j].end, winClose) - Math.max(merged[j].start, winStart));
+  }
+  return Math.floor(covered / unitMinutes);
+}
+window.blockedUnits = blockedUnits;
 
 /*
   computeDay(ymd, handling, lane, config, now) — pure. `now` is a Date
@@ -2618,6 +2665,8 @@ function computeDay(ymd, handling, lane, config, now) {
   var day = mockCalendarDay(ymd);
   var cls = dayClassOf(ymd);
   var isToday = (ymd === ymdET(now));
+  var blocks = day.blocks || { red: [], navy: [], purple: [], green: [] };
+  var window = (config.blockWindow && config.blockWindow[cls]) || null;
 
   if (handling === "wait") {
     if (lane !== "light") return { available: false, reason: "full" };
@@ -2633,10 +2682,19 @@ function computeDay(ymd, handling, lane, config, now) {
     var nowPlusNoticeMin = nowParts.hh * 60 + nowParts.mm + noticeMinutes;
     var open = starts.filter(function(t) {
       if (day.greenTaken.indexOf(t) !== -1) return false;
+      var tParts = t.split(":").map(function(x) { return parseInt(x, 10); });
+      var tMin = tParts[0] * 60 + tParts[1];
       if (isToday) {
-        var tParts = t.split(":").map(function(x) { return parseInt(x, 10); });
-        var tMin = tParts[0] * 60 + tParts[1];
         if (tMin < nowPlusNoticeMin) return false; // boundary: exactly AT now+notice counts as open (>=)
+      }
+      var greenBlocks = blocks.green || [];
+      for (var gb = 0; gb < greenBlocks.length; gb++) {
+        var b = greenBlocks[gb];
+        var bStart = b.start.split(":").map(function(x) { return parseInt(x, 10); });
+        var bEnd = b.end.split(":").map(function(x) { return parseInt(x, 10); });
+        var bStartMin = bStart[0] * 60 + bStart[1];
+        var bEndMin = bEnd[0] * 60 + bEnd[1];
+        if (tMin >= bStartMin && tMin < bEndMin) return false; // [start, end) half-open
       }
       return true;
     });
@@ -2651,28 +2709,36 @@ function computeDay(ymd, handling, lane, config, now) {
     /* 'closed' (day not operated for this handling) takes precedence over
        both 'full' and 'past-cutoff'. */
     if (lane === "tech" && cls === "sun") return { available: false, reason: "closed" };
-    /* Same-day cutoff applies to both lanes of dropoff (a day-only handling). */
-    if (isToday && etTimeGteCutoff(now, config.dropCutoff)) {
-      return { available: false, reason: "past-cutoff" };
-    }
+    /* No same-day drop-offs: today is never offered. dropCutoff no longer
+       gates here (it still drives the "Drop off, by 9:00 AM" summary copy). */
+    if (isToday) return { available: false, reason: "past-cutoff" };
     if (lane === "tech") {
-      if (day.noMore != null) return { available: false, reason: "past-cutoff" };
       var redCap = cls === "sat" ? config.redCap.sat : config.redCap.weekday;
-      if (day.red >= redCap) return { available: false, reason: "full" };
+      var redBlocked = blockedUnits(blocks.red, window, 30);
+      // remaining = cap − blocked slots − duration-weighted booked units
+      // (spec §2.3; the Tue 7/14 fixtures pin this arithmetic).
+      if (redCap - redBlocked - day.red < 1) {
+        return { available: false, reason: (redBlocked > 0 && day.red < redCap) ? "past-cutoff" : "full" };
+      }
       return { available: true };
     }
     /* lane === 'light' (Navy) — Mon-Sun. */
     var navyCap = config.navyCap[cls];
-    if (day.navy >= navyCap) return { available: false, reason: "full" };
+    var navyBlocked = blockedUnits(blocks.navy, window, config.defaultApptMinutes);
+    if (navyCap - navyBlocked - day.navy < 1) {
+      return { available: false, reason: (navyBlocked > 0 && day.navy < navyCap) ? "past-cutoff" : "full" };
+    }
     return { available: true };
   }
 
   if (handling === "whiteglove") {
     if (cls === "sat" || cls === "sun") return { available: false, reason: "closed" };
-    if (isToday && etTimeGteCutoff(now, config.dropCutoff)) {
-      return { available: false, reason: "past-cutoff" };
+    /* No same-day white glove: today is never offered. */
+    if (isToday) return { available: false, reason: "past-cutoff" };
+    var purpleBlocked = blockedUnits(blocks.purple, window, 30);
+    if (config.whiteGlove.capPerDay - purpleBlocked - day.purple < 1) {
+      return { available: false, reason: (purpleBlocked > 0 && day.purple < config.whiteGlove.capPerDay) ? "past-cutoff" : "full" };
     }
-    if (day.purple >= config.whiteGlove.capPerDay) return { available: false, reason: "full" };
     return { available: true };
   }
 
@@ -2897,6 +2963,52 @@ function preloadAvailability() {
 window.preloadAvailability = preloadAvailability;
 
 /*
+  prefetchNextWeek(currentParams, weekMonday) — after a week's availability
+  paints, silently warm the FOLLOWING week with the same handling/lane/services
+  (loading-ux plan Task 4). weekMonday is the CURRENT visible week's Monday
+  (S.timeAnchor); the next week's request anchor is derived the SAME way the
+  next drawSlots will (weekRequestAnchor of weekMonday+7) so the prefetched key
+  matches the nav fetch EXACTLY — otherwise a min-clamped current week (its
+  request anchor floored to today, not its Monday) would cache under the wrong
+  key and forward nav would miss. Forward week-nav (the common direction) then
+  paints synchronously from availCacheGet. Guards: stays inside the booking
+  horizon; skips when already cached or in-flight; failure is invisible (warn
+  only — the visible path falls back to its normal fetch-with-loading behavior).
+  Runs at PAINT time (not mount), so unlike preloadAvailability it does NOT gate
+  on CONFIG.backendUrl — prefetching the synchronous mock is a harmless extra
+  call with zero UX effect.
+*/
+function prefetchNextWeek(currentParams, weekMonday) {
+  try {
+    var nextAnchor = weekRequestAnchor(addDaysYmd(weekMonday, 7));
+    if (nextAnchor > maxBookableDate()) return;
+    var params = {
+      date: nextAnchor,
+      handling: currentParams.handling,
+      lane: currentParams.lane,
+      services: (currentParams.services || []).slice(),
+    };
+    var key = _cpsAvailabilityKey(params);
+    if (availCacheGet(key) || (S._availInflight && S._availInflight[key])) return;
+    var p = availabilityProvider(params)
+      .then(function(result) {
+        delete S._availInflight[key];
+        if (result && result.days) availCachePut(key, result.days);
+        return result;
+      })
+      .catch(function(err) {
+        delete S._availInflight[key];
+        console.warn("prefetchNextWeek: prefetch failed — week nav will fetch on its own —", err);
+        return null;
+      });
+    S._availInflight[key] = p;
+  } catch (err) {
+    console.warn("prefetchNextWeek: skipped —", err);
+  }
+}
+window.prefetchNextWeek = prefetchNextWeek;
+
+/*
   ============================================================================
   LIVE SERVICE LIST AT MOUNT  (preview feedback round 5 — the root fix)
 
@@ -2939,6 +3051,43 @@ function isValidConfigResult(obj) {
   });
 }
 window.isValidConfigResult = isValidConfigResult;
+
+/*
+  resolveMaintenanceMatrix(rows, services) — maps the relay's name-keyed
+  matrix rows (config.maintenanceMatrix, Task 1) onto the LIVE service list,
+  producing the {id, name, bookable, everyMiles, everyMonths, jobKeywords}
+  rows that mileageRecs() and the due-service engine consume. Name match is
+  case-insensitive (same convention as popularServiceNames). "Bookable" is
+  determined ONLY by whether the row matches a live online service — never
+  a hardcoded flag. A row naming a service the shop doesn't offer this
+  session is KEPT (never dropped) but tagged bookable:false, id:null — it
+  surfaces as an advisory, display-only "may also be due for" item instead
+  of a one-tap add (a rec must never be offered as bookable without a real
+  live id behind it).
+*/
+function resolveMaintenanceMatrix(rows, services) {
+  if (!Array.isArray(rows)) return [];
+  var out = [];
+  rows.forEach(function(r) {
+    if (!r || typeof r.serviceName !== 'string') return;
+    var svc = (services || []).find(function(s) {
+      return String(s.name).toLowerCase() === r.serviceName.toLowerCase();
+    });
+    // A row whose serviceName matches a live online service is BOOKABLE
+    // (one-tap add). A row with no live match is ADVISORY (display-only,
+    // id:null) — surfaced under "may also be due for", never addable.
+    out.push({
+      id: svc ? svc.id : null,
+      name: svc ? svc.name : r.serviceName,
+      bookable: !!svc,
+      everyMiles: (typeof r.everyMiles === 'number' && r.everyMiles > 0) ? r.everyMiles : null,
+      everyMonths: (typeof r.everyMonths === 'number' && r.everyMonths > 0) ? r.everyMonths : null,
+      jobKeywords: Array.isArray(r.jobKeywords) ? r.jobKeywords.map(function(k) { return String(k).toLowerCase(); }) : []
+    });
+  });
+  return out;
+}
+window.resolveMaintenanceMatrix = resolveMaintenanceMatrix;
 
 /* applyLiveServices(services) — swap CONFIG.services to the live list and
    reconcile CONFIG.serviceRules (see loadLiveServices doc comment).
@@ -3072,6 +3221,7 @@ function loadLiveServices() {
       .then(function(data) {
         if (!isValidConfigResult(data)) throw new Error('config: malformed response shape');
         applyLiveServices(data.services);
+        CONFIG.maintenanceMatrix = resolveMaintenanceMatrix(data.maintenanceMatrix, CONFIG.services);
         applyVehicleRestriction(data.vehicleRestriction); // no-op on absent/malformed — keeps the 2001 fallback
         return data;
       })
@@ -3518,6 +3668,26 @@ function reconcileSelectedDay(days) {
 window.reconcileSelectedDay = reconcileSelectedDay;
 
 /*
+  setDayNoticeLoading(on) — the day grid's loading status line (loading-ux
+  plan Task 1). While the availability fetch is pending the reserved
+  #cps-day-notice line reads "Checking available days" with the shared
+  .cps-loading animated ellipsis; paintAvailability clears BOTH the text and
+  the class (it already clears the text for the retry-notice case).
+  Screen-reader users hear it via the existing role="status" on the element.
+*/
+function setDayNoticeLoading(on) {
+  var el = document.getElementById("cps-day-notice");
+  if (!el) return;
+  if (on) {
+    el.textContent = "Checking available days";
+    el.classList.add("cps-loading");
+  } else {
+    el.classList.remove("cps-loading");
+  }
+}
+window.setDayNoticeLoading = setDayNoticeLoading;
+
+/*
   paintAvailability(body, wrap, handling, days) — the ONE paint pass for a
   `days` availability map, shared by drawSlots' cache-hit (synchronous) and
   fetch-success paths so both render identically. Reconciles the current
@@ -3535,7 +3705,7 @@ function paintAvailability(body, wrap, handling, days) {
      button in #cps-day-notice — a successful paint must clear it
      (reconcileSelectedDay below may legitimately re-write it). */
   var dayNoticeEl = document.getElementById("cps-day-notice");
-  if (dayNoticeEl) dayNoticeEl.textContent = "";
+  if (dayNoticeEl) { dayNoticeEl.textContent = ""; dayNoticeEl.classList.remove("cps-loading"); }
   reconcileSelectedDay(days);
   paintDayButtons(body, days);
   if (handling !== "wait" || !wrap) return;
@@ -3576,9 +3746,32 @@ window.paintAvailability = paintAvailability;
   message). 'dropoff'/'whiteglove' have no #cps-slots element at all, so
   this is a no-op past the day-button repaint for them. On a provider
   rejection, shows a calm, price-free retry message in place of the loading
-  placeholder rather than leaving "Loading times..." stuck forever (wait
-  only — dropoff/whiteglove have nothing to retry into).
+  skeleton chips rather than leaving them pulsing forever (wait only —
+  dropoff/whiteglove have nothing to retry into).
 */
+/* availCacheGet/Put/Clear — the keyed week cache (loading-ux plan Task 4).
+   Tiny LRU: order[] holds keys most-recent-LAST; put of an existing key
+   re-bumps it; overflow evicts order[0]. Cap comes from CONFIG so it is
+   tunable, not magic. */
+function availCacheGet(key) {
+  var c = S._availCache;
+  return (c && c.entries && Object.prototype.hasOwnProperty.call(c.entries, key)) ? c.entries[key] : null;
+}
+function availCachePut(key, days) {
+  var c = S._availCache;
+  if (!c || !c.entries) { S._availCache = c = { entries: {}, order: [] }; }
+  if (!Object.prototype.hasOwnProperty.call(c.entries, key)) c.order.push(key);
+  else c.order.splice(c.order.indexOf(key), 1), c.order.push(key);
+  c.entries[key] = days;
+  var cap = (CONFIG.availPrefetchCacheMax != null) ? CONFIG.availPrefetchCacheMax : 4;
+  while (c.order.length > cap) { delete c.entries[c.order.shift()]; }
+}
+function availCacheClear() {
+  S._availCache = { entries: {}, order: [] };
+  S._availInflight = {};
+}
+window.availCacheClear = availCacheClear;
+
 function drawSlots(body) {
   var handling = S.sched.handling;
   var wrap = body.querySelector ? body.querySelector("#cps-slots") : document.getElementById("cps-slots");
@@ -3588,6 +3781,7 @@ function drawSlots(body) {
      un-covered leading days simply render "Not available". */
   var params = { date: weekRequestAnchor(S.timeAnchor), handling: handling, lane: S.lane, services: S.services };
   var key = _cpsAvailabilityKey(params);
+  var reqMonday = S.timeAnchor; // snapshot the visible week's Monday for prefetchNextWeek (keys the FOLLOWING week to exactly what its drawSlots will request)
 
   /* Warm cache (day-pick fix): when the visible week's availability is
      already known — the customer just picked a DAY within the same week,
@@ -3598,12 +3792,26 @@ function drawSlots(body) {
      times..." flash, no tiles flickering disabled-to-enabled. Only a genuinely
      new request (first load, week nav, handling/lane/service change, retry)
      misses the cache and shows the loading state. */
-  if (S._availCache && S._availCache.key === key) {
-    paintAvailability(body, wrap, handling, S._availCache.days);
+  var cachedDays = availCacheGet(key);
+  if (cachedDays) {
+    // Cache HIT (forward nav into a prefetched week, or a day-pick within the
+    // same week): paint synchronously. We deliberately do NOT prefetch from
+    // here — the week-after is warmed only off a genuine (fresh) fetch, so a
+    // forward nav that consumes the prefetch stays a zero-fetch operation.
+    paintAvailability(body, wrap, handling, cachedDays);
     return Promise.resolve();
   }
 
-  if (wrap) wrap.innerHTML = '<p class="cps-hint">Loading times...</p>';
+  setDayNoticeLoading(true);
+  if (wrap) {
+    /* Skeleton chips, same 44px footprint as real .cps-slot buttons (Task 2
+       of the loading-ux plan) — the day-notice line (setDayNoticeLoading
+       above) carries the words; these carry the shape. aria-hidden: the
+       status line is the accessible signal, the chips are decoration. */
+    var skel = '';
+    for (var sk = 0; sk < 4; sk++) skel += '<span class="cps-slot-skel" aria-hidden="true"></span>';
+    wrap.innerHTML = skel;
+  }
   /* Warm-cache consumption (preview feedback round 3): the mount-time
      preload is used at most ONCE, and only when its key still matches the
      params this draw would fetch with (see _cpsAvailabilityKey). A stale or
@@ -3616,16 +3824,20 @@ function drawSlots(body) {
     source = pre.promise.then(function(result) {
       return result || availabilityProvider(params);
     });
+  } else if (S._availInflight && S._availInflight[key]) {
+    source = S._availInflight[key];
   } else {
     source = availabilityProvider(params);
   }
   return source
     .then(function(result) {
       var days = result.days || {};
-      S._availCache = { key: key, days: days }; // remember this week so day-picks repaint instantly
+      availCachePut(key, days);
       paintAvailability(body, wrap, handling, days);
+      prefetchNextWeek(params, reqMonday);
     })
     .catch(function() {
+      setDayNoticeLoading(false);
       if (wrap && handling === "wait") {
         wrap.innerHTML =
           '<p class="cps-hint">We couldn\'t load available times. Please try again.</p>' +
@@ -3660,7 +3872,7 @@ function refreshTimeGrid(body) {
 
 /* _cpsRetrySlots() — re-invokes the grid refresh for the current step's body; wired to the error state's "Try again" button. Drops the warm cache first so the retry always makes a live request (the cache would otherwise just repaint the same failed-into-empty state). */
 window._cpsRetrySlots = function() {
-  S._availCache = null;
+  availCacheClear();
   var body = document.getElementById("cps-bodyc");
   if (body) refreshTimeGrid(body);
 };
@@ -3739,6 +3951,117 @@ const MOCK_NEW_ACCOUNT = { isReturning: false, vehicles: [] };
 
 window.MOCK_TEST_PHONE = MOCK_TEST_PHONE;
 window.MOCK_OTP_CODE = MOCK_OTP_CODE;
+
+/* MOCK_VEHICLE_HISTORY — canned partner-history keyed by tekVehicleId for
+   the mock provider (keep in sync with the relay's DRY_RUN_VEHICLE_HISTORY_
+   so mock and rehearsal agree). Fixed literals — never Date.now(). The
+   estimatedMileage constant matches the fixture's timeline extrapolated to
+   the 2026-07 window the tests pin CONFIG._now() to. */
+const MOCK_VEHICLE_HISTORY = {
+  90021: {
+    history: [
+      { date: "2026-03-15T15:00:00Z", mileage: 51300, jobs: [
+        { name: "Tire Rotation", authorized: false, declined: true } ] },
+      { date: "2025-09-20T15:00:00Z", mileage: 46900, jobs: [
+        { name: "Full Synthetic Oil Change Service", authorized: true, declined: false },
+        { name: "Cabin Air Filter", authorized: false, declined: true } ] },
+      { date: "2025-01-10T15:00:00Z", mileage: 41200, jobs: [
+        { name: "Full Synthetic Oil Change Service", authorized: true, declined: false },
+        { name: "Tire Rotation", authorized: true, declined: false } ] }
+    ],
+    estimatedMileage: 54100
+  }
+};
+window.MOCK_VEHICLE_HISTORY = MOCK_VEHICLE_HISTORY;
+
+/*
+  fetchVehicleHistory() -> Promise<{ok, history, estimatedMileage}>
+  Layer B's prefetch provider, same mock/live split as the OTP providers.
+  MOCK (no backendUrl/OTP_ON): the canned MOCK_VEHICLE_HISTORY row, or empty.
+  LIVE: POST action:'history' with the relay session + the picked vehicle's
+  identifiers. EVERY failure (non-ok, malformed, rejection) resolves to the
+  EMPTY shape — the caller can't tell a failure from a vehicle with no
+  history, which is exactly the spec's silent Layer-A degrade. Never rejects.
+*/
+function fetchVehicleHistory() {
+  if (!(CONFIG.backendUrl && CONFIG.OTP_ON)) {
+    var canned = MOCK_VEHICLE_HISTORY[S.vehicle.tekVehicleId];
+    return Promise.resolve(canned
+      ? { ok: true, history: canned.history, estimatedMileage: canned.estimatedMileage }
+      : { ok: true, history: [], estimatedMileage: null });
+  }
+  var hp = document.getElementById('cps-hp');
+  var body = JSON.stringify({
+    action: 'history',
+    sessionId: S.otp.sessionId,
+    tekVehicleId: S.vehicle.tekVehicleId,
+    year: S.vehicle.year, make: S.vehicle.make, model: S.vehicle.model,
+    honeypot: hp ? hp.value : ''
+  });
+  return fetch(CONFIG.backendUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: body })
+    .then(function(res) { if (!res || !res.ok) throw new Error('history: non-ok response'); return res.json(); })
+    .then(function(data) {
+      if (!data || data.ok !== true || !Array.isArray(data.history)) throw new Error('history: malformed response shape');
+      return { ok: true, history: data.history, estimatedMileage: data.estimatedMileage || null };
+    })
+    .catch(function(err) {
+      console.warn('fetchVehicleHistory: degraded to empty —', err);
+      return { ok: true, history: [], estimatedMileage: null };
+    });
+}
+window.fetchVehicleHistory = fetchVehicleHistory;
+
+/* MOCK_CLEARWAY_DUE — canned Clearway due-service results keyed by
+   tekVehicleId for the mock provider (keep in sync with the relay's
+   DRY_RUN_CLEARWAY_DUE_ so mock and rehearsal agree). Clearway matches the
+   shop's real RO history against its shop-tuned interval table server-side —
+   the widget just maps whatever comes back onto Card 2 (mapClearwayDue). */
+const MOCK_CLEARWAY_DUE = {
+  90021: [
+    { service_name: 'Oil Change', state: 'overdue-mileage', canned_job_id: null,
+      linked_canned_jobs: [{ id: 7426, name: 'Full Synthetic Oil Change Service' }],
+      reason: 'Last done about 96,453 miles ago; the schedule is every 6,000 miles.' },
+    { service_name: 'Tire Rotation', state: 'overdue-mileage', canned_job_id: 21284,
+      linked_canned_jobs: [{ id: 21284, name: 'Tire Rotation' }],
+      reason: 'Last done about 55,000 miles ago; the schedule is every 6,000 miles.' },
+    { service_name: 'Coolant Service', state: 'due-at-next', canned_job_id: null,
+      linked_canned_jobs: [{ id: 99001, name: 'BG Cooling System Service' }],
+      reason: 'Approaching the 60,000-mile service interval.' },
+  ],
+};
+window.MOCK_CLEARWAY_DUE = MOCK_CLEARWAY_DUE;
+
+/*
+  fetchRecommendations() -> Promise<{ok, due}>
+  Card 2's ("Due at your mileage") data source: the shop's authoritative
+  Clearway recommendations, relayed through the `recommendations` action.
+  Same mock/live gate + never-reject contract as fetchVehicleHistory — every
+  failure (non-ok, malformed, rejection) silently degrades to an EMPTY due
+  list; the caller can't tell "nothing due" from "the fetch failed", which is
+  exactly the spec's silent-degrade rule. Never rejects.
+*/
+function fetchRecommendations() {
+  if (!(CONFIG.backendUrl && CONFIG.OTP_ON)) {
+    var canned = MOCK_CLEARWAY_DUE[S.vehicle.tekVehicleId];
+    return Promise.resolve({ ok: true, due: Array.isArray(canned) ? canned : [] });
+  }
+  var hp = document.getElementById('cps-hp');
+  var body = JSON.stringify({
+    action: 'recommendations',
+    sessionId: S.otp.sessionId,
+    tekVehicleId: S.vehicle.tekVehicleId,
+    mileage: parseInt(S.vehicle.mileage, 10) || null,
+    honeypot: hp ? hp.value : ''
+  });
+  return fetch(CONFIG.backendUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: body })
+    .then(function(res) { if (!res || !res.ok) throw new Error('recommendations: non-ok'); return res.json(); })
+    .then(function(data) {
+      if (!data || data.ok !== true || !Array.isArray(data.due)) throw new Error('recommendations: malformed');
+      return { ok: true, due: data.due };
+    })
+    .catch(function(err) { console.warn('fetchRecommendations: degraded to empty —', err); return { ok: true, due: [] }; });
+}
+window.fetchRecommendations = fetchRecommendations;
 
 /* isValidPhone(phone) — minimal US-mobile check: exactly 10 digits once
    non-digit formatting characters are stripped. No international support
@@ -4214,6 +4537,28 @@ function pickVehicle(tekVehicleId) {
   S.vehicle.make = v.make;
   S.vehicle.model = v.model;
   S.vehicle.recommendedServices = v.recommendedServices || [];
+
+  /* Layer B prefetch — fired HERE so the fetch runs while the customer
+     finishes the Vehicle step and Extras renders with history in hand
+     (spec: prefetch timing). Stale guard: if the customer switches vehicles
+     mid-flight, the late response is dropped. The estimate pre-fills the
+     mileage field ONLY when it is still empty — a typed value always wins. */
+  S.vehicle.mileage = "";
+  S.vehicle.history = null;
+  S.vehicle.estimatedMileage = null;
+  S.vehicle.historyLoading = true;   // drives the "estimating your mileage…" hint
+  S.recs.clearwayDue = null;         // invalidate Card 2 — a vehicle switch needs a fresh Clearway fetch
+  S.recs.clearwayLoading = false;   // also clear loading so the new vehicle/mileage can refetch
+  fetchVehicleHistory().then(function(data) {
+    if (S.vehicle.tekVehicleId !== v.tekVehicleId) return; // stale — vehicle switched
+    S.vehicle.history = data.history;
+    S.vehicle.estimatedMileage = data.estimatedMileage;
+    S.vehicle.historyLoading = false;
+    if (data.estimatedMileage && !String(S.vehicle.mileage).trim()) {
+      S.vehicle.mileage = String(data.estimatedMileage);
+    }
+    if (S.step === 3 || S.step === 4) render(); // repaint the mileage hint / Extras recs
+  });
   render();
 }
 window.pickVehicle = pickVehicle;
@@ -4225,6 +4570,11 @@ function showAddVehicle() {
   S.vehicle._addNew = true;
   S.vehicle.tekVehicleId = null;
   S.vehicle.recommendedServices = [];
+  S.vehicle.history = null;
+  S.vehicle.estimatedMileage = null;
+  S.vehicle.historyLoading = false;
+  S.recs.clearwayDue = null; // invalidate Card 2 — the new-vehicle entry needs its own Clearway fetch
+  S.recs.clearwayLoading = false;   // also clear loading so the new vehicle/mileage can refetch
   render();
 }
 window.showAddVehicle = showAddVehicle;
@@ -4270,7 +4620,11 @@ function setVehicleModel(modelId, modelName) {
   S.vehicle.modelName = modelName || "";
   S.vehicle.model = modelName || "";
 }
-function setVehicleMileage(val) { S.vehicle.mileage = val; }
+function setVehicleMileage(val) {
+  S.vehicle.mileage = val;
+  S.recs.clearwayDue = null; // invalidate Card 2 — Clearway needs a refetch at the new mileage
+  S.recs.clearwayLoading = false;   // also clear loading so the new vehicle/mileage can refetch
+}
 function setVehiclePlate(val)   { S.vehicle.plate = val; }
 window.setVehicleYear    = setVehicleYear;
 window.setVehicleMake    = setVehicleMake;
@@ -4781,6 +5135,31 @@ function renderVehicle(body, foot, h2) {
       '<button class="cps-btn cps-btn-ghost" id="cps-veh-add" type="button" style="margin-top:10px;font-size:14px;padding:10px 14px" ' +
         'onclick="window.showAddVehicle()">Add a different vehicle</button>' +
       '</div>';
+
+    /* Mileage confirm — the garage view never asked mileage before, so
+       returning customers could never get mileage-based recommendations.
+       Estimate pre-filled (Layer B) = one glance to confirm; editable when
+       off; blank when there's no usable history. Optional either way. */
+    if (S.vehicle.tekVehicleId != null) {
+      /* While the history prefetch is in flight (partner-API round trip, a few
+         seconds), the field is blank — show an explicit "estimating…" hint and
+         placeholder so it never looks stuck. The field stays editable: if the
+         customer types before the estimate lands, their value wins (pickVehicle
+         only pre-fills when the field is still empty). */
+      var miLoading = S.vehicle.historyLoading && !String(S.vehicle.mileage).trim();
+      var estActive = S.vehicle.estimatedMileage && String(S.vehicle.mileage) === String(S.vehicle.estimatedMileage);
+      var estHint = miLoading
+        ? "Estimating your current mileage from your service history"
+        : (estActive ? "Estimated from your service history — adjust it if it's off." : "Your best guess is fine.");
+      bodyHtml += '<div class="cps-section" id="cps-garage-mileage-block">' +
+        '<p class="cps-section-title">Current mileage</p>' +
+        '<div class="cps-field">' +
+          '<label for="cps-veh-mileage">Mileage</label>' +
+          '<input id="cps-veh-mileage" type="text" inputmode="numeric" class="cps-textarea" style="min-height:unset;padding:11px 12px" ' +
+            'placeholder="' + (miLoading ? 'Estimating…' : '48000') + '" value="' + esc(S.vehicle.mileage) + '" oninput="window.setVehicleMileage(this.value)" />' +
+          '<p class="cps-hint' + (miLoading ? ' cps-loading' : '') + '">' + esc(estHint) + '</p>' +
+        '</div></div>';
+    }
   } else {
     if (isReturning) {
       bodyHtml += '<p class="cps-stepsub">Tell us about your vehicle.</p>';
@@ -4848,7 +5227,7 @@ function renderVehicle(body, foot, h2) {
     }).join('');
 
     var makes = Object.prototype.hasOwnProperty.call(_vehMakesCache, S.vehicle.year) ? _vehMakesCache[S.vehicle.year] : null;
-    var makeOpts = '<option value="">' + (S.vehicle.year ? (makes ? 'Choose a make' : 'Loading makes...') : 'Choose a year first') + '</option>';
+    var makeOpts = '<option value="">' + (S.vehicle.year ? (makes ? 'Choose a make' : 'Loading makes…') : 'Choose a year first') + '</option>';
     if (makes) {
       makeOpts += makes.map(function(m) {
         return '<option value="' + Number(m.makeId) + '"' + (S.vehicle.makeId === m.makeId ? ' selected' : '') + '>' + esc(m.makeName) + '</option>';
@@ -4857,7 +5236,7 @@ function renderVehicle(body, foot, h2) {
 
     var models = (S.vehicle.makeId != null && Object.prototype.hasOwnProperty.call(_vehModelsCache, _vehModelsKey()))
       ? _vehModelsCache[_vehModelsKey()] : null;
-    var modelOpts = '<option value="">' + (S.vehicle.makeId != null ? (models ? 'Choose a model' : 'Loading models...') : 'Choose a make first') + '</option>';
+    var modelOpts = '<option value="">' + (S.vehicle.makeId != null ? (models ? 'Choose a model' : 'Loading models…') : 'Choose a make first') + '</option>';
     if (models) {
       modelOpts += models.map(function(m) {
         return '<option value="' + Number(m.modelId) + '"' + (S.vehicle.modelId === m.modelId ? ' selected' : '') + '>' + esc(m.modelName) + '</option>';
@@ -5027,6 +5406,256 @@ function mileageRecs(mileage, matrix) {
 window.mileageRecs = mileageRecs;
 
 /*
+  mileageBandDue(mileage, everyMiles) — true when the vehicle's mileage sits
+  near a service-interval boundary: within the first or last quarter
+  (MILEAGE_DUE_BAND) of the current interval cycle. Gives a "due soon /
+  recently due" set without flagging every service mid-cycle. This is the
+  Card 2 ("Due at your mileage") merge rule (two-card Extras rework) — it
+  REPLACES mileageRecs' asymmetric MILEAGE_DUE_WINDOW_MILES rule for that
+  card; mileageRecs itself is untouched (still used/tested standalone).
+*/
+var MILEAGE_DUE_BAND = 0.25;
+function mileageBandDue(mileage, everyMiles) {
+  var m = parseInt(mileage, 10);
+  if (!everyMiles || everyMiles <= 0 || !m || isNaN(m) || m < everyMiles) return false;
+  var frac = (m % everyMiles) / everyMiles;
+  return frac <= MILEAGE_DUE_BAND || frac >= (1 - MILEAGE_DUE_BAND);
+}
+window.mileageBandDue = mileageBandDue;
+
+/*
+  computeDueServices(matrix, history, mileage, now) — the personalized
+  due-service engine (Layer B; a keyword-matching port of Project-Clearway-2's
+  preventiveCare.js — see the plan's port notes). PURE: no S, no network, no
+  ambient clock (now injected) — mileage edits recompute instantly.
+  For each resolved matrix row: find the newest AUTHORIZED historical job
+  whose name contains one of the row's jobKeywords (declined/unauthorized
+  jobs never count as done), then classify each axis with a 10% buffer:
+    mileage: entered mileage vs lastDone.mileage + everyMiles
+    time:    now vs lastDone.date + everyMonths (month = 30.44 days)
+  Combined state (priority): no lastDone -> 'no-history'; both overdue ->
+  'overdue-both'; then 'overdue-mileage' / 'overdue-time' / 'due-at-next'
+  (either axis in the due band) / 'not-yet-due'. Only REC_DUE_STATES rows
+  become recommendations (loadRecs, Task 6); reasons are calm + price-free.
+  Each row also carries `bookable` straight through from the matrix row
+  (defaulting true when absent) — historyRecs/loadRecs route on this ONLY
+  (never on a service-name guess) to split bookable due services from
+  advisory (display-only) ones.
+*/
+var REC_DUE_STATES = { 'overdue-both': 1, 'overdue-mileage': 1, 'overdue-time': 1, 'due-at-next': 1 };
+
+function computeDueServices(matrix, history, mileage, now) {
+  var MS_PER_MONTH = 86400000 * 30.44;
+  var miles = parseInt(mileage, 10);
+  var hasMiles = !isNaN(miles) && miles > 0;
+  var nowMs = now.getTime();
+  var ros = Array.isArray(history) ? history : [];
+
+  return (matrix || []).map(function(row) {
+    var kws = row.jobKeywords || [];
+    var lastDone = null;
+    if (kws.length) {
+      outer:
+      for (var i = 0; i < ros.length; i++) {
+        var jobs = ros[i].jobs || [];
+        for (var j = 0; j < jobs.length; j++) {
+          var job = jobs[j];
+          if (!job || !job.name || job.declined === true || job.authorized === false) continue;
+          var name = String(job.name).toLowerCase();
+          for (var k = 0; k < kws.length; k++) {
+            if (name.indexOf(kws[k]) !== -1) {
+              lastDone = { mileage: ros[i].mileage, date: ros[i].date };
+              break outer;
+            }
+          }
+        }
+      }
+    }
+
+    var mi = null;
+    if (row.everyMiles && lastDone && hasMiles && typeof lastDone.mileage === 'number') {
+      var overdueAt = miles - (lastDone.mileage + row.everyMiles);
+      var buf = row.everyMiles * 0.10;
+      mi = overdueAt > buf ? 'overdue' : (overdueAt >= -buf ? 'due' : 'fine');
+    }
+    var tm = null;
+    if (row.everyMonths && lastDone && lastDone.date) {
+      var lastMs = new Date(lastDone.date).getTime();
+      if (!isNaN(lastMs)) {
+        var overdueMonths = (nowMs - (lastMs + row.everyMonths * MS_PER_MONTH)) / MS_PER_MONTH;
+        var tbuf = row.everyMonths * 0.10;
+        tm = overdueMonths > tbuf ? 'overdue' : (overdueMonths >= -tbuf ? 'due' : 'fine');
+      }
+    }
+
+    var state;
+    if (!lastDone) state = 'no-history';
+    else if (mi === 'overdue' && tm === 'overdue') state = 'overdue-both';
+    else if (mi === 'overdue') state = 'overdue-mileage';
+    else if (tm === 'overdue') state = 'overdue-time';
+    else if (mi === 'due' || tm === 'due') state = 'due-at-next';
+    else state = 'not-yet-due';
+
+    return {
+      id: row.id, name: row.name, state: state, lastDone: lastDone,
+      bookable: row.bookable !== false, // absent flag defaults TRUE (pre-existing small test matrices carry no bookable field)
+      reason: REC_DUE_STATES[state] ? buildRecReason(row, lastDone, miles, nowMs) : ''
+    };
+  });
+}
+window.computeDueServices = computeDueServices;
+window.REC_DUE_STATES = REC_DUE_STATES;
+
+/*
+  buildRecReason(row, lastDone, miles, nowMs) — the one-line "why" under a
+  personalized rec. Calm + price-free (assertPriceFree-guarded): states when
+  it was last done and the typical schedule — never diagnoses, no urgency
+  words. Mileage phrasing preferred; time phrasing when mileage can't carry
+  it; empty string when neither can (the tile renders without a sub-line).
+*/
+function buildRecReason(row, lastDone, miles, nowMs) {
+  if (!lastDone) return '';
+  if (row.everyMiles && typeof lastDone.mileage === 'number' && miles > 0) {
+    var ago = miles - lastDone.mileage;
+    if (ago > 0) return 'Last done about ' + fmtMilesGrouped(ago) + ' miles ago — typically every ' + fmtMilesGrouped(row.everyMiles) + ' miles.';
+  }
+  if (row.everyMonths && lastDone.date) {
+    var months = Math.round((nowMs - new Date(lastDone.date).getTime()) / (86400000 * 30.44));
+    if (months > 0) return 'Last done about ' + months + ' month' + (months === 1 ? '' : 's') + ' ago — typically every ' + row.everyMonths + ' months.';
+  }
+  return '';
+}
+window.buildRecReason = buildRecReason;
+
+/* fmtMilesGrouped(n) -> '7,200' — thousands separators for reason copy. */
+function fmtMilesGrouped(n) {
+  return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+/*
+  mileageFallbackReason(row) -> the calm, price-free reason line for a Card 2
+  item that has NO history record but is mileage-band due (mileageBandDue).
+  Deliberately distinct from buildRecReason's personalized "Last done about"
+  copy — there is no lastDone to reference here, only the row's own
+  schedule.
+*/
+function mileageFallbackReason(row) {
+  return 'Typically due around every ' + fmtMilesGrouped(row.everyMiles) + ' miles.';
+}
+
+/*
+  makeCard2Item(row, reason) -> the Card 2 ("Due at your mileage") item shape
+  for one resolved matrix row: { key, id, name, reason, bookable }. `key` is
+  the stable SELECTION identity (two-card Extras rework) — a bookable row
+  (a real online service, resolveMaintenanceMatrix-tagged) keys off its live
+  id ('svc:<id>'); a non-bookable row has no id to key off of, so it keys off
+  its own (lowercased) name ('adv:<name>') instead. `id` stays present on
+  every item (null for non-bookable) so existing `.id`-based lookups over
+  BOOKABLE items keep working unchanged.
+*/
+function makeCard2Item(row, reason) {
+  var bookable = row.bookable !== false;
+  return {
+    key:      bookable ? ('svc:' + row.id) : ('adv:' + String(row.name).toLowerCase()),
+    id:       bookable ? row.id : null,
+    name:     row.name,
+    reason:   reason || '',
+    bookable: bookable
+  };
+}
+
+/*
+  historyRecs() -> array | null. Card 2's personalized-engine builder: null
+  means "no usable history" — loadRecs falls back to the mileage-band-only
+  rule (today's Layer-A behavior, and the silent-degrade landing spot for
+  every relay failure upstream). With history + the historyRecs flag, EVERY
+  resolved matrix row (bookable or not — see makeCard2Item) is classified
+  two ways and merged into ONE flat, fully-selectable list (two-card Extras
+  rework — there is no longer a separate display-only advisory list):
+    - History path (precise): a REC_DUE_STATES row (computeDueServices found
+      an authorized keyword match and it's due/overdue) uses its computed
+      buildRecReason line ("Last done about...").
+    - Mileage fallback (broad): a row computeDueServices found NO record for
+      (lastDone null) still lands here when mileageBandDue(mileage,
+      row.everyMiles) — reason is the calm "Typically due around every N
+      miles" line (mileageFallbackReason). Time-only rows (everyMiles null)
+      never fire here — no reliable time signal without a history match.
+  computeDueServices maps 1:1 over `matrix` (same order/length), so
+  dueRows[i] always corresponds to matrix[i].
+*/
+function historyRecs() {
+  var history = S.vehicle && S.vehicle.history;
+  if (!CONFIG.historyRecs || !Array.isArray(history) || history.length === 0) return null;
+  var matrix = CONFIG.maintenanceMatrix || [];
+  var mileage = S.vehicle && S.vehicle.mileage;
+  var dueRows = computeDueServices(matrix, history, mileage, CONFIG._now());
+  var out = [];
+  matrix.forEach(function(row, i) {
+    var due = dueRows[i];
+    if (REC_DUE_STATES[due.state]) {
+      out.push(makeCard2Item(row, due.reason));
+    } else if (due.lastDone === null && mileageBandDue(mileage, row.everyMiles)) {
+      out.push(makeCard2Item(row, mileageFallbackReason(row)));
+    }
+  });
+  return out;
+}
+window.historyRecs = historyRecs;
+
+/*
+  clearwayMatchLiveService(item, services) — resolves one Clearway due item
+  against the LIVE online-booking service list (CONFIG.services), so
+  mapClearwayDue can decide bookable vs advisory. Matches on either the
+  Clearway item's own service_name OR any of its linked_canned_jobs names,
+  substring-tolerant both directions (case-insensitive) — Clearway's naming
+  and the shop's live service names don't always match exactly (e.g. "Oil
+  Change" vs "Oil Change Service"). Returns the matched CONFIG.services
+  entry, or null if nothing lines up (the item becomes an advisory/
+  non-bookable Card 2 row).
+*/
+function clearwayMatchLiveService(item, services) {
+  var svcName = String(item.service_name || '').toLowerCase().trim();
+  var linkedNames = (item.linked_canned_jobs || []).map(function(j) { return String(j.name || '').toLowerCase().trim(); });
+  return (services || []).find(function(s) {
+    var ln = String(s.name || '').toLowerCase().trim();
+    if (!ln) return false;
+    if (ln === svcName || ln.indexOf(svcName) !== -1 || (svcName && svcName.indexOf(ln) !== -1)) return true;
+    return linkedNames.some(function(n) { return n && (n === ln || n.indexOf(ln) !== -1 || ln.indexOf(n) !== -1); });
+  }) || null;
+}
+window.clearwayMatchLiveService = clearwayMatchLiveService;
+
+/*
+  mapClearwayDue(due, services) -> Card 2 ("Due at your mileage") item array.
+  Clearway already decided WHAT is due (matched against the shop's real RO
+  history + its shop-tuned interval table, server-side) — this only maps
+  that decision onto the existing selection shape ({key, id, name, reason,
+  bookable}), same as makeCard2Item did for the retired local engine. A
+  Clearway item that resolves to a live online service (clearwayMatchLiveService)
+  is bookable, keyed 'svc:<id>'; one that doesn't is advisory/non-bookable,
+  keyed 'adv:<service_name.toLowerCase()>' (mirrors makeCard2Item's non-
+  bookable convention so toggleRec/isSelected/renderRecommended need no
+  changes). `reason` is carried straight through from Clearway's own
+  (already calm, price-free) copy — never recomputed client-side. A non-
+  array/absent `due` (the fetch's silent-degrade shape) maps to [].
+*/
+function mapClearwayDue(due, services) {
+  return (Array.isArray(due) ? due : []).map(function(item) {
+    /* linkedNames = the REAL Tekmetric canned-job names this Clearway service
+       maps to (e.g. Clearway "Transmission Fluid" -> "BG Transmission Service").
+       Carried onto the rec so loadRecs can dedupe against declined jobs by the
+       actual canned job — Clearway's display label ("Transmission Fluid") won't
+       match the declined name ("BG Transmission Service"), but the linked
+       canned job will. */
+    var linkedNames = (item.linked_canned_jobs || []).map(function(j) { return String(j.name || '').toLowerCase().trim(); }).filter(Boolean);
+    var svc = clearwayMatchLiveService(item, services);
+    if (svc) return { key: 'svc:' + svc.id, id: svc.id, name: svc.name, reason: item.reason || '', bookable: true, linkedNames: linkedNames };
+    return { key: 'adv:' + String(item.service_name || '').toLowerCase(), id: null, name: item.service_name || '', reason: item.reason || '', bookable: false, linkedNames: linkedNames };
+  });
+}
+window.mapClearwayDue = mapClearwayDue;
+
+/*
   loadRecs() — populates S.recs.declined and S.recs.recommended from the
   current S.vehicle. Selection (S.recs.selected) is otherwise a separate,
   user-driven concern via toggleRec — but every re-derive here also prunes
@@ -5043,19 +5672,62 @@ window.mileageRecs = mileageRecs;
   out of S.recs.selected. recomputeBasket() runs once at the end (not once
   per removed entry) since basketRemove() would otherwise re-render/re-derive
   redundantly for every pruned item.
+
+  Two-card Extras rework: S.recs.recommended is now a single flat, fully-
+  selectable list (Card 2, "Due at your mileage") — bookable AND non-bookable
+  rows both live here, each carrying a stable `key`. There is no more
+  separate S.recs.advisory list. validIds.recommended is keyed by `key` (not
+  `id`, since a non-bookable rec has no id) — selected-pruning below follows
+  suit: a 'declined' selection is still looked up by its jobId; a
+  'recommended' selection by its key.
+
+  Card 2 is now Clearway-sourced (recommended-services-clearway): the retired
+  local engine (historyRecs/computeDueServices/mileageBandDue/makeCard2Item/
+  CONFIG.maintenanceMatrix) no longer populates this card — S.recs.recommended
+  comes straight from mapClearwayDue(S.recs.clearwayDue, CONFIG.services).
+  S.recs.clearwayDue is fetched once per Extras entry (see renderRecommended)
+  and invalidated by a vehicle switch or mileage edit (pickVehicle/
+  showAddVehicle/setVehicleMileage) so a refetch happens when either changes.
 */
 function loadRecs() {
   S.recs.declined = (S.vehicle && S.vehicle.recommendedServices) || [];
-  S.recs.recommended = mileageRecs(S.vehicle && S.vehicle.mileage, CONFIG.maintenanceMatrix);
+
+  S.recs.recommended = mapClearwayDue(S.recs.clearwayDue, CONFIG.services);
+
+  /* Declined-jobs dedupe (spec: trust ranking) — the declined section is an
+     advisor's actual recommendation; a Clearway rec for the same work would
+     read as a duplicate upsell. Clearway carries no matrix rows to match
+     through, so the dedupe now compares NAMES directly (case-insensitive,
+     substring-tolerant both directions — declined job names and Clearway/
+     live service names don't always match exactly, e.g. a declined "Full
+     Synthetic Oil Change Service" vs a Clearway "Oil Change" rec mapped to
+     the live "Oil Change Service"). */
+  var declinedNames = S.recs.declined.map(function(d) { return String(d.name || '').toLowerCase().trim(); });
+  S.recs.recommended = S.recs.recommended.filter(function(r) {
+    var rn = String(r.name || '').toLowerCase().trim();
+    /* (a) display-name match, substring-tolerant — catches e.g. a Clearway
+       "Oil Change" rec mapped to live "Oil Change Service" vs declined "Full
+       Synthetic Oil Change Service". */
+    var nameHit = declinedNames.some(function(dn) { return dn && rn && (dn === rn || dn.indexOf(rn) !== -1 || rn.indexOf(dn) !== -1); });
+    /* (b) canned-job match, EXACT normalized — the rec's linked canned job IS
+       a declined job (e.g. Transmission Fluid -> "BG Transmission Service").
+       Exact match avoids false positives (a substring test could wrongly link
+       unrelated jobs); both sides carry the same Tekmetric canned-job name. */
+    var jobHit = (r.linkedNames || []).some(function(ln) { return ln && declinedNames.indexOf(ln) !== -1; });
+    return !(nameHit || jobHit);
+  });
 
   var validIds = { declined: {}, recommended: {} };
   S.recs.declined.forEach(function(d) { validIds.declined[d.jobId] = true; });
-  S.recs.recommended.forEach(function(r) { validIds.recommended[r.id] = true; });
+  S.recs.recommended.forEach(function(r) { validIds.recommended[r.key] = true; });
 
   var kept = [];
   var removedAny = false;
   S.recs.selected.forEach(function(s) {
-    if (validIds[s.source] && validIds[s.source][s.id]) {
+    var stillValid = s.source === 'declined'
+      ? !!validIds.declined[s.id]
+      : !!validIds.recommended[s.key];
+    if (stillValid) {
       kept.push(s);
     } else {
       if (s.basketId) {
@@ -5072,55 +5744,70 @@ function loadRecs() {
 window.loadRecs = loadRecs;
 
 /*
-  toggleRec(source, id) — adds/removes one item from S.recs.selected AND its
-  mirrored basket entry (v2 Task 8 — recs join the basket so the lane model
-  governs them; selecting a tech-default declined job can flip S.lane to
-  'tech' and close the wait lane guard, exactly like any other tech-category
-  basket entry).
+  toggleRec(source, idOrKey) — adds/removes one item from S.recs.selected
+  AND its mirrored basket entry (v2 Task 8 — recs join the basket so the
+  lane model governs them; selecting a tech-default declined job can flip
+  S.lane to 'tech' and close the wait lane guard, exactly like any other
+  tech-category basket entry).
 
-  source is 'declined' (matched by jobId) or 'recommended' (matched by
-  matrix id). S.recs.selected stays a clean, de-duplicated list of
-  { source, id, name, basketId } — enough for Task 7's buildPayload (selected
-  bookable recs union selected declined jobs) without re-deriving anything,
-  plus the basketId needed to remove the exact mirrored basket entry.
+  source is 'declined' (matched by jobId — UNCHANGED) or 'recommended'
+  (two-card Extras rework: matched by the item's stable `key`, since Card 2
+  now mixes bookable services (real ids) with non-bookable ones (no id at
+  all) — id can no longer be the selection identity). S.recs.selected stays
+  a clean, de-duplicated list:
+    - declined:    { source, id, name, basketId }
+    - recommended: { source, key, name, basketId }
 
-  Removal must work unconditionally from the stored (source, id) — it does
-  not need the item to still be present in S.recs.declined/recommended. If
-  loadRecs() re-derives those lists (e.g. mileage edited, item no longer
+  Removal must work unconditionally from the stored (source, id/key) — it
+  does not need the item to still be present in S.recs.declined/recommended.
+  If loadRecs() re-derives those lists (e.g. mileage edited, item no longer
   due) a previously-selected item could otherwise become unremovable: it
   would linger as a phantom in S.recs.selected (and its basket entry as a
-  phantom in S.basket) forever. Only the ADD path needs the resolved item
-  (for its name + category).
+  phantom in S.basket) forever. Only the ADD path needs the resolved item.
 
-  category: a 'recommended' rec is a catalog service, so its category comes
-  from serviceCategory() (the same source of truth as any other service
-  entry); a 'declined' rec is a prior-visit job id with no catalog mapping,
-  so its category comes from CONFIG.jobRules[id] (fail-safe to 'tech',
-  mirroring serviceCategory's own fail-safe default — never silently offer
-  the lighter lane for a job we have no rule for).
+  Routing on ADD (recommended source):
+    - Bookable (item.bookable, a real online service): mirrors into the
+      basket as kind 'rec' with serviceIds:[item.id] — rides payload.services
+      via the basket-derived S.services (buildPayload union), category from
+      serviceCategory() (same source of truth as any other service entry).
+    - Non-bookable (no live service behind it): mirrors into the basket as
+      kind 'concern' with summary: item.name — rides buildConcerns() as a
+      customer-request line, category 'tech' (conservative default; a
+      concern entry doesn't drive lane choice the way a 'rec'/'service'
+      entry's category does, but recomputeBasket() still reads it). It MUST
+      NEVER carry a serviceIds entry — there is no id to put there.
+  A 'declined' rec is a prior-visit job id with no catalog mapping, so its
+  category comes from CONFIG.jobRules[id] (fail-safe to 'tech', mirroring
+  serviceCategory's own fail-safe default).
 */
-function toggleRec(source, id) {
-  var idx = S.recs.selected.findIndex(function(s) { return s.source === source && s.id === id; });
+function toggleRec(source, idOrKey) {
+  var idx = S.recs.selected.findIndex(function(s) {
+    if (s.source !== source) return false;
+    return source === 'declined' ? s.id === idOrKey : s.key === idOrKey;
+  });
   if (idx !== -1) {
     var existing = S.recs.selected[idx];
     S.recs.selected.splice(idx, 1);
     if (existing.basketId) basketRemove(existing.basketId);
     return;
   }
-  var list = source === 'declined' ? S.recs.declined : S.recs.recommended;
-  var item = list.filter(function(x) {
-    return (source === 'declined' ? x.jobId : x.id) === id;
-  })[0];
-  if (!item) return;
 
-  var category = source === 'recommended' ? serviceCategory(id) : ((CONFIG.jobRules[id] && CONFIG.jobRules[id].category) || 'tech');
-  var basketId = basketAdd({
-    kind:       'rec',
-    serviceIds: source === 'recommended' ? [id] : [],
-    jobIds:     source === 'declined' ? [id] : [],
-    category:   category,
-  });
-  S.recs.selected.push({ source: source, id: id, name: item.name, basketId: basketId });
+  if (source === 'declined') {
+    var declinedItem = S.recs.declined.filter(function(x) { return x.jobId === idOrKey; })[0];
+    if (!declinedItem) return;
+    var category = (CONFIG.jobRules[idOrKey] && CONFIG.jobRules[idOrKey].category) || 'tech';
+    var declinedBasketId = basketAdd({ kind: 'rec', serviceIds: [], jobIds: [idOrKey], category: category });
+    S.recs.selected.push({ source: source, id: idOrKey, name: declinedItem.name, basketId: declinedBasketId });
+    return;
+  }
+
+  var recItem = S.recs.recommended.filter(function(x) { return x.key === idOrKey; })[0];
+  if (!recItem) return;
+
+  var recBasketId = recItem.bookable
+    ? basketAdd({ kind: 'rec', serviceIds: [recItem.id], jobIds: [], category: serviceCategory(recItem.id) })
+    : basketAdd({ kind: 'concern', summary: recItem.name, category: 'tech' });
+  S.recs.selected.push({ source: 'recommended', key: idOrKey, name: recItem.name, basketId: recBasketId });
 }
 window.toggleRec = toggleRec;
 
@@ -5150,18 +5837,48 @@ window.skipRecs = skipRecs;
 
 function renderRecommended(body, foot, h2) {
   h2.textContent = "Recommended for your vehicle";
+
+  /* Clearway fetch trigger (recommended-services-clearway): Card 2 needs the
+     customer-confirmed mileage, which is only settled once the Vehicle step
+     is done — so the fetch fires HERE, at Extras entry, not at pickVehicle.
+     Stale guard mirrors pickVehicle's history prefetch: only repaint if still
+     on step 4 when the mock/live promise resolves. clearwayDue === null means
+     "not fetched yet" (see S.recs init + setVehicleMileage/pickVehicle/
+     showAddVehicle, which reset it to null on any vehicle/mileage change so
+     a fresh fetch happens); the loading flag guards against re-firing while
+     one is already in flight. */
+  if (S.recs.clearwayDue === null && !S.recs.clearwayLoading) {
+    S.recs.clearwayLoading = true;
+    /* Stale guard (mirrors pickVehicle's history prefetch): capture the vehicle
+       at call time; if the customer switches vehicles mid-flight, drop the late
+       response so it can't overwrite the new vehicle's due-list (which would
+       show — and let them book — the wrong vehicle's services). The vehicle-
+       switch reset (clearwayDue=null + clearwayLoading=false) lets the new
+       vehicle fire its own fetch. */
+    var fetchingVehicleId = S.vehicle.tekVehicleId;
+    fetchRecommendations().then(function(data) {
+      if (S.vehicle.tekVehicleId !== fetchingVehicleId) return; // stale — vehicle switched
+      S.recs.clearwayDue = data.due;
+      S.recs.clearwayLoading = false;
+      if (S.step === 4) render();
+    });
+  }
+
   loadRecs();
 
   var declined = S.recs.declined;
   var recommended = S.recs.recommended;
 
-  function isSelected(source, id) {
-    return S.recs.selected.some(function(s) { return s.source === source && s.id === id; });
+  function isSelected(source, idOrKey) {
+    return S.recs.selected.some(function(s) {
+      if (s.source !== source) return false;
+      return source === 'declined' ? s.id === idOrKey : s.key === idOrKey;
+    });
   }
 
   var bodyHtml = '<p class="cps-steptitle">Recommended for your vehicle</p>';
 
-  if (declined.length === 0 && recommended.length === 0) {
+  if (declined.length === 0 && recommended.length === 0 && !S.recs.clearwayLoading) {
     bodyHtml += '<p class="cps-stepsub">Your vehicle is up to date. Nothing else to recommend right now.</p>';
   } else {
     bodyHtml += '<p class="cps-stepsub">Optional: add any of these to your visit, or skip.</p>';
@@ -5184,18 +5901,41 @@ function renderRecommended(body, foot, h2) {
       bodyHtml += '</div></div>';
     }
 
-    if (recommended.length > 0) {
-      bodyHtml += '<div class="cps-section" id="cps-mileage-block"><p class="cps-section-title">Due for your mileage</p>';
-      bodyHtml += '<div style="display:flex;flex-direction:column;gap:8px">';
-      bodyHtml += recommended.map(function(r) {
-        var on = isSelected('recommended', r.id);
-        return '<button class="cps-btn cps-btn-ghost cps-tile' + (on ? ' cps-sel' : '') + '" type="button" ' +
-          'aria-pressed="' + (on ? 'true' : 'false') + '" ' +
-          'onclick="window._cpsToggleRec(\'recommended\',' + Number(r.id) + ')">' +
-          '<span class="cps-tile-title">' + esc(r.name) + '</span>' +
-          '</button>';
-      }).join('');
-      bodyHtml += '</div></div>';
+    /* Card 2 — "Due at your mileage": a single MERGED, fully-selectable
+       list (two-card Extras rework), now Clearway-sourced. Bookable and
+       non-bookable rows render as the identical tile convention as Card 1's
+       declined jobs — the old display-only "may also be due for" advisory
+       block is gone; every row here is a real <button> the customer can
+       tap. The onclick arg is the item's STABLE STRING KEY (not a numeric
+       id — a non-bookable row has no id) — window._cpsToggleRec passes args
+       straight through to toggleRec with no coercion, so the quoted string
+       flows through fine. While the Clearway fetch is still in flight and
+       nothing is known due yet, this card shows a calm loading line instead
+       of its tile list (or of not rendering at all). */
+    if (recommended.length > 0 || S.recs.clearwayLoading) {
+      bodyHtml += '<div class="cps-section" id="cps-mileage-block"><p class="cps-section-title">Due at your mileage</p>';
+      if (recommended.length > 0) {
+        bodyHtml += '<p class="cps-stepsub">Based on your mileage and our records.</p>';
+        bodyHtml += '<div style="display:flex;flex-direction:column;gap:8px">';
+        bodyHtml += recommended.map(function(r) {
+          var on = isSelected('recommended', r.key);
+          return '<button class="cps-btn cps-btn-ghost cps-tile' + (on ? ' cps-sel' : '') + '" type="button" ' +
+            'aria-pressed="' + (on ? 'true' : 'false') + '" ' +
+            /* esc() makes the key HTML-attribute-safe (&,",<,> round-trip through
+               HTML parsing); the extra \' escape makes an apostrophe in a service
+               name (e.g. "Driver's ...") safe inside the single-quoted JS string
+               literal the onclick evaluates — without it the handler would break
+               for that tile. */
+            'onclick="window._cpsToggleRec(\'recommended\', \'' + esc(r.key).replace(/'/g, "\\'") + '\')">' +
+            '<span class="cps-tile-title">' + esc(r.name) + '</span>' +
+            (r.reason ? '<span class="cps-tile-sub">' + esc(r.reason) + '</span>' : '') +
+            '</button>';
+        }).join('');
+        bodyHtml += '</div>';
+      } else {
+        bodyHtml += '<p class="cps-stepsub">Checking your service records…</p>';
+      }
+      bodyHtml += '</div>';
     }
   }
 
@@ -5363,9 +6103,14 @@ window.buildConcerns = buildConcerns;
     the T19 capture (year coerced to a number; mileage/plate/baseVehicleId
     stay widget-side — mileage feeds the matrix recs, never the wire; no
     subModelId — the submodel picker is skipped in v1, wire shape uncaptured).
-  - services[]: S.services unioned with selected bookable recs (S.recs.selected
-    entries with source === 'recommended', identified by their matrix id),
-    de-duplicated.
+  - services[]: S.services unioned with selected BOOKABLE recs (S.recs.selected
+    entries with source === 'recommended' whose key is 'svc:<id>' — the
+    two-card Extras rework's stable selection identity; the id is parsed
+    back out of the key since the entry no longer stores a bare numeric id),
+    de-duplicated. A non-bookable rec's key is 'adv:<name>' — it is
+    deliberately skipped here; it carries no live service id and rides the
+    booking only via its mirrored 'concern' basket entry (buildConcerns()),
+    never payload.services.
   - recommendedServices[]: selected declined jobs (S.recs.selected entries
     with source === 'declined', identified by jobId) — kept separate from
     services[] so the live-wiring phase can submit them as the customer's
@@ -5377,7 +6122,12 @@ function buildPayload() {
 
   S.recs.selected.forEach(function(sel) {
     if (sel.source === 'recommended') {
-      if (serviceIds.indexOf(sel.id) === -1) serviceIds.push(sel.id);
+      if (sel.key && sel.key.indexOf('svc:') === 0) {
+        var recId = parseInt(sel.key.slice(4), 10);
+        if (!isNaN(recId) && serviceIds.indexOf(recId) === -1) serviceIds.push(recId);
+      }
+      // 'adv:'-keyed (non-bookable) selections carry no service id — they
+      // ride the booking as a concern only (see toggleRec/buildConcerns).
     } else if (sel.source === 'declined') {
       recommendedServices.push(sel.id);
     }
@@ -5598,7 +6348,7 @@ window.confirmBooking = confirmBooking;
 function handleSlotGone() {
   S.sched.date = "";
   S.sched.slot = "";
-  S._availCache = null; // the cached week is now stale — force a live refetch on the Time step
+  availCacheClear(); // the cached week is now stale — force a live refetch on the Time step
   S.step = 1;
   announce("That time is no longer available. Please pick another.");
   render();
@@ -5901,7 +6651,9 @@ function esc(str) {
         });
       });
     }).observe(document.body, { childList: true, subtree: true });
-    // Deep link: cardinalplazashell.com/#book opens the widget
+    // Deep link: cardinalplazashell.com/#book opens the widget. Also accept the
+    // ?book=1 query param — the Google Business Profile "Book online" link uses
+    // it because Google can strip the #fragment from booking links.
     if (window.location.hash === '#book' || new URLSearchParams(window.location.search).get('book') === '1') cardinalShowBooking();
   }
   // A fetched script usually runs AFTER window 'load' has fired, so we can't
