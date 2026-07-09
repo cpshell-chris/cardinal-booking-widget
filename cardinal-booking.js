@@ -297,7 +297,7 @@ const S = {
      never sends it), and courtesy is legacy state the UI no longer writes —
      buildPayload derives the wire `courtesy` flag from `ride` + the same
      drop-off handling gate as before (commit 4e00b5e). */
-  sched:     { handling: "", date: "", slot: "", afterHours: false, courtesy: false, ride: false, wgAttested: false }, // handling starts UNSELECTED (owner 2026-07-07): no visit type is pre-highlighted — all three tiles read white until the customer picks one
+  sched:     { handling: "", date: "", slot: "", validatedLane: "", afterHours: false, courtesy: false, ride: false, wgAttested: false }, // validatedLane (lane-change revalidation, 2026-07-09): the S.lane a picked day was validated under; the guard re-routes to Time when it goes stale. handling starts UNSELECTED (owner 2026-07-07): no visit type is pre-highlighted — all three tiles read white until the customer picks one
   timeAnchor: "", // 'YYYY-MM-DD' — start of the visible 7-day week window on the Time step; "" until renderTime first sets it
   _availPreload: null, // { key, promise } — the mount-time availability preload (preview feedback round 3); consumed once by drawSlots when the key still matches, null otherwise. See preloadAvailability().
   _availCache: { entries: {}, order: [] }, // keyed week-availability cache (LRU, cap CONFIG.availPrefetchCacheMax). entries[key]=days map; order = most-recent-last. Replaces the old single {key,days} slot so the NEXT week can be prefetched after each paint (loading-ux plan Task 4). Invalidation: explicit retry and slot-gone recovery clear the WHOLE map (availCacheClear); handling/lane/service changes re-key on their own.
@@ -1698,6 +1698,14 @@ window._cpsGuardHook = function() {
 
     var handlingInvalid = S.sched.handling && allowedHandlings().indexOf(S.sched.handling) === -1;
 
+    /* Re-route target for a past-Verify disruption: reuse the existing
+       _returnTo===5 "back to Review" shortcut so re-picking a time skips
+       Verify (2) + Vehicle (3) — the OTP session and captured vehicle are
+       untouched. Evaluated from the step the guard fires ON, before we move
+       it. Only when past Verify (step > 2); earlier steps have no OTP to
+       preserve. (lane-change revalidation, Task 2) */
+    var returnAfterReroute = (S.step > 2) ? 5 : null;
+
     /* Emptied basket (1b: the toggling tiles + Remove links make this easy
        to reach): allowedHandlings() is [] so ANY handling reads "invalid",
        but there is no schedule left to protect — the customer is rebuilding
@@ -1708,6 +1716,7 @@ window._cpsGuardHook = function() {
       S.sched.handling  = ''; // rebuild-from-scratch: start unselected too (owner 2026-07-07), matching the boot default
       S.sched.date       = '';
       S.sched.slot        = '';
+      S.sched.validatedLane = ''; // the picked day is gone; drop its validated-lane stamp too (Task 1)
       S.sched.wgAttested = false;
       if (S.step > 0) {
         S.step = 0;
@@ -1721,15 +1730,33 @@ window._cpsGuardHook = function() {
       S.sched.handling  = '';
       S.sched.date       = '';
       S.sched.slot        = '';
+      S.sched.validatedLane = ''; // the picked day is cleared; drop its validated-lane stamp too (Task 1)
       S.sched.wgAttested = false;
       announce("Your visit type changed because of what you added. Please re-pick a time.");
-      S._returnTo = null;
+      S._returnTo = returnAfterReroute; // preserve the no-re-OTP return when past Verify (Task 2)
       /* Route to Time whenever we're not already there — covers both "past
          Time" (steps 2-5, the common bidirectional-guard case) and "on Help
          mid add-more" (step 0: the stale schedule still needs re-picking
          even though the customer hasn't reached Confirm yet — there is
          nothing later to protect by leaving them on step 0). Never fires
          while already on step 1 itself (nothing to route to). */
+      if (S.step !== 1) {
+        S.step = 1;
+        if (widgetOpen) render();
+      }
+      return;
+    }
+
+    /* Lane changed under a still-valid handling (e.g. navy dropoff -> red
+       dropoff after adding a tech service at Extras). The picked day was
+       validated under a different lane, so its availability can't be trusted
+       — route to Time WITHOUT clearing the date and let the Time step's
+       re-fetch + reconcileSelectedDay keep it (still open for the new lane)
+       or drop it with the calm notice (now full/cutoff/closed). "Disrupt
+       only if needed." (lane-change revalidation, Task 2) */
+    var laneStale = S.sched.date && S.sched.validatedLane && S.sched.validatedLane !== S.lane;
+    if (laneStale) {
+      S._returnTo = returnAfterReroute;
       if (S.step !== 1) {
         S.step = 1;
         if (widgetOpen) render();
@@ -3556,6 +3583,7 @@ window._cpsHandling = function(h) {
   S.sched.handling = h;
   S.sched.date = "";
   S.sched.slot = "";
+  S.sched.validatedLane = "";
   if (h !== "whiteglove") S.sched.wgAttested = false;
   /* Re-clamp the visible week window for the new handling. Today's
      min/maxBookableDate don't actually vary by handling, but the brief calls
@@ -3653,9 +3681,10 @@ function reconcileSelectedDay(days) {
   var info = days && days[S.sched.date];
   var stillGood = inWeek && !!info && info.available === true &&
     S.sched.date >= minBookableDate() && S.sched.date <= maxBookableDate();
-  if (stillGood) return false;
+  if (stillGood) { S.sched.validatedLane = S.lane; return false; } // carried-over day re-confirmed under the current lane
   S.sched.date = "";
   S.sched.slot = "";
+  S.sched.validatedLane = "";
   recomputeInspection();
   var msg = "That day just filled up. Please pick another.";
   var noticeEl = document.getElementById("cps-day-notice");
@@ -3887,6 +3916,7 @@ window._cpsRetrySlots = function() {
 function pickDate(date) {
   S.sched.date = date;
   S.sched.slot = "";
+  S.sched.validatedLane = date ? S.lane : ""; // lane this day is validated under (revalidation guard, Task 1)
   // Rides are weekday-only for online bookings — picking a weekend day drops a
   // ride selected earlier on a weekday so it never rides a Sat/Sun drop-off.
   if (date && dayClassOf(date) !== 'wkdy') S.sched.ride = false;
@@ -5835,6 +5865,17 @@ function skipRecs() {
 }
 window.skipRecs = skipRecs;
 
+/* recFlipsLane(category) — true when adding a rec of this category would move
+   a currently-light visit into the red (tech) lane. Drives the calm
+   "may need a different time" caption on Extras rec tiles (lane-change
+   revalidation, Task 3). No caption once the visit is already red. */
+function recFlipsLane(category) {
+  return (S.lane === 'light' || S.lane == null) && category === 'tech';
+}
+window.recFlipsLane = recFlipsLane;
+
+var REC_LANE_WARN_ = 'May need a different time.';
+
 function renderRecommended(body, foot, h2) {
   h2.textContent = "Recommended for your vehicle";
 
@@ -5891,11 +5932,14 @@ function renderRecommended(body, foot, h2) {
       bodyHtml += '<div style="display:flex;flex-direction:column;gap:8px">';
       bodyHtml += declined.map(function(d) {
         var on = isSelected('declined', d.jobId);
+        var dcat = (CONFIG.jobRules[d.jobId] && CONFIG.jobRules[d.jobId].category) || 'tech';
+        var dwarn = recFlipsLane(dcat) ? '<span class="cps-tile-sub">' + esc(REC_LANE_WARN_) + '</span>' : '';
         return '<button class="cps-btn cps-btn-ghost cps-tile' + (on ? ' cps-sel' : '') + '" type="button" ' +
           'aria-pressed="' + (on ? 'true' : 'false') + '" ' +
           'onclick="window._cpsToggleRec(\'declined\',' + Number(d.jobId) + ')">' +
           '<span class="cps-tile-title">' + esc(d.name) + '</span>' +
           '<span class="cps-tile-sub">' + esc(declinedRecencyLabel(d.date)) + '</span>' +
+          dwarn +
           '</button>';
       }).join('');
       bodyHtml += '</div></div>';
@@ -5919,6 +5963,8 @@ function renderRecommended(body, foot, h2) {
         bodyHtml += '<div style="display:flex;flex-direction:column;gap:8px">';
         bodyHtml += recommended.map(function(r) {
           var on = isSelected('recommended', r.key);
+          var cat = r.bookable ? serviceCategory(r.id) : 'tech'; // non-bookable recs enter as a 'tech' concern
+          var warn = recFlipsLane(cat) ? '<span class="cps-tile-sub">' + esc(REC_LANE_WARN_) + '</span>' : '';
           return '<button class="cps-btn cps-btn-ghost cps-tile' + (on ? ' cps-sel' : '') + '" type="button" ' +
             'aria-pressed="' + (on ? 'true' : 'false') + '" ' +
             /* esc() makes the key HTML-attribute-safe (&,",<,> round-trip through
@@ -5929,6 +5975,7 @@ function renderRecommended(body, foot, h2) {
             'onclick="window._cpsToggleRec(\'recommended\', \'' + esc(r.key).replace(/'/g, "\\'") + '\')">' +
             '<span class="cps-tile-title">' + esc(r.name) + '</span>' +
             (r.reason ? '<span class="cps-tile-sub">' + esc(r.reason) + '</span>' : '') +
+            warn +
             '</button>';
         }).join('');
         bodyHtml += '</div>';
