@@ -5902,7 +5902,7 @@ function esc(str) {
       });
     }).observe(document.body, { childList: true, subtree: true });
     // Deep link: cardinalplazashell.com/#book opens the widget
-    if (window.location.hash === '#book') cardinalShowBooking();
+    if (window.location.hash === '#book' || new URLSearchParams(window.location.search).get('book') === '1') cardinalShowBooking();
   }
   // A fetched script usually runs AFTER window 'load' has fired, so we can't
   // rely on addEventListener('load'). Run now if the DOM is ready, else wait.
