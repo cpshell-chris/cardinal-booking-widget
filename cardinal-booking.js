@@ -296,6 +296,19 @@ const S = {
      availability, the basket, or the create payload. resetBooking() restores
      it from _pristineState. */
   priorWorkIntent: false,
+  /* _priorWorkAckPending — Defect 2 fix (2026-07-14): S.priorWorkIntent
+     above is STICKY for the whole session by design (Extras' copy needs to
+     remember a prior-work request was ever made), but the guard hook's
+     ROUTING decision (add-another -> Extras vs straight to Review) must NOT
+     reuse that sticky flag: a session where round 1 was a prior-work
+     request and round 2 is an ordinary concern must route round 2 straight
+     to Review, not back through Extras. applyIntakeResult sets this true
+     ONLY when THIS round's result carries priorWorkIntent === true; the
+     guard hook consumes and clears it on every add-another routing decision
+     regardless of outcome, so the Extras detour fires once per prior-work
+     round, never for an unrelated round after it. resetBooking() restores
+     it from _pristineState. */
+  _priorWorkAckPending: false,
   basket:    [],   // v2: [{ id, kind, serviceIds, jobIds, category, summary, inspectionIntent }]
   services:  [],   // derived — do not push directly; use basketAdd/basketRemove/basketEdit
   lane:      null, // derived — 'light' | 'tech' | null (basket empty)
@@ -326,7 +339,7 @@ const S = {
   customerInfo: { firstName: "", lastName: "", email: "", address1: "", city: "", state: "VA", zip: "" },
   vehicle:   { tekVehicleId: null, year: "", make: "", model: "", makeId: null, makeName: "", modelId: null, modelName: "", mileage: "", plate: "", recommendedServices: [], history: null, estimatedMileage: null },
   recs:      { declined: [], recommended: [], selected: [], clearwayDue: null, clearwayLoading: false }, // clearwayDue: null = not yet fetched, [] = fetched-empty (Card 2 is Clearway-sourced — see loadRecs/fetchRecommendations)
-  inspection: { types: { safety: false, emissions: false }, intent: false, eligible: false, added: false, optedOut: false, _prevEligible: false }, // v2 Task 7 — derived by recomputeInspection(); optedOut is internal (see _cpsInspToggle). _prevEligible is internal (v2 Task 8 — tracks the last-computed eligible value so recomputeInspection() can detect a false->true transition and reset optedOut). types: the customer's explicit Help-step tile picks (safety/emissions), independently selectable — the ONE source for which inspections ride the visit; intent stays true if the AI intake flagged a basket entry too. Cleared by recompute when the visit has nothing bookable to attach to (inspections are never standalone).
+  inspection: { types: { safety: false, emissions: false }, intent: false, eligible: false, added: false }, // v2 Task 7 — derived by recomputeInspection(). types: the customer's explicit Help-step tile picks (safety/emissions), independently selectable — the ONE source for which inspections ride the visit (and the ONE opt-out path — see recomputeInspection() doc comment); intent stays true if the AI intake flagged a basket entry too. Cleared by recompute when the visit has nothing bookable to attach to (inspections are never standalone).
   submitting: false,
   otpBusy:    false, // v2 Task 17 fix pass — true while an otpSend/otpVerify is in flight from _cpsVerifyPrimary (the S.submitting discipline: re-entrant taps are ignored until the provider settles)
   _returnTo: null, // v2 Task 11 — set to 5 by addAnotherConcern('confirm') so the guard hook can land back on Confirm once the newly-added concern finalizes and the schedule is still valid; null otherwise (fresh boot, or addAnotherConcern('help')).
@@ -487,24 +500,22 @@ window.recomputeBasket = recomputeBasket;
 
 /*
   recomputeInspection() — re-derives S.inspection from current state:
-    intent   = any basket entry has inspectionIntent === true.
+    intent   = any basket entry has inspectionIntent === true (or an explicit
+               Help-step tile pick — see `explicit` below).
     eligible = handling is 'dropoff' AND a date is picked AND that date is a
                weekday (dowOfYmd <= 5). Never wait, never White Glove, never
                weekend — per Chris's binding business rule.
-    added    = intent && eligible && !optedOut (auto-added whenever eligible,
-               unless the user explicitly unticked it via _cpsInspToggle() —
-               see that function's doc comment for the opt-out semantics).
+    added    = intent && eligible (auto-rides whenever both hold).
   Idempotent / safe to call redundantly — every call site just needs "make
   S.inspection reflect the world right now."
 
-  v2 Task 8 (carried from Task 7's review): optedOut never reset on its own,
-  so a customer who unticks the inspection then changes the schedule stayed
-  silently opted out even after picking a brand-new eligible date/handling.
-  Fix: whenever eligible transitions false->true (tracked via the internal
-  _prevEligible field), optedOut is cleared BEFORE `added` is computed — a
-  fresh eligible context resumes auto-add. An eligible->eligible re-derive
-  (e.g. picking a different weekday while already eligible) is NOT a
-  transition, so an explicit opt-out correctly survives it.
+  Owner decision (post-Task-8 reflow, 2026-07-14): the Extras-step opt-out
+  checkbox is REMOVED — the step-0 tile (_cpsInspectionSelect) is the ONE
+  place an inspection is added or removed, so there is no separate
+  optedOut/_prevEligible state to track here anymore. Deselecting the tile
+  clears S.inspection.types, which flips `explicit`/`intent` false on the
+  next recompute — that IS the opt-out, and it needs no memory across
+  eligibility transitions because there is nothing left to remember.
 */
 function recomputeInspection() {
   /* Inspections are never standalone (cardinal-inspection-rules): they can
@@ -519,14 +530,9 @@ function recomputeInspection() {
   var intent = explicit || S.basket.some(function(e) { return !!e.inspectionIntent; });
   var eligible = S.sched.handling === 'dropoff' && !!S.sched.date && dowOfYmd(S.sched.date) <= 5;
 
-  if (eligible && !S.inspection._prevEligible) {
-    S.inspection.optedOut = false;
-  }
-  S.inspection._prevEligible = eligible;
-
   S.inspection.intent = intent;
   S.inspection.eligible = eligible;
-  S.inspection.added = intent && eligible && !S.inspection.optedOut;
+  S.inspection.added = intent && eligible;
 }
 window.recomputeInspection = recomputeInspection;
 
@@ -553,21 +559,6 @@ function selectedInspectionLabels() {
   return out;
 }
 window.selectedInspectionLabels = selectedInspectionLabels;
-
-/*
-  window._cpsInspToggle() — the Add-ons step's inspection checkbox handler.
-  Only meaningful while eligible (the line only renders then). Flips
-  S.inspection.optedOut so the user's explicit untick sticks even though
-  intent+eligible still hold true (recomputeInspection()'s default is to
-  auto-add whenever both are true) — re-ticking flips optedOut back off.
-  Recomputes (so `added` reflects the new optedOut) and re-renders.
-*/
-window._cpsInspToggle = function() {
-  if (!S.inspection.eligible) return;
-  S.inspection.optedOut = !S.inspection.optedOut;
-  recomputeInspection();
-  render();
-};
 
 /*
   inspectionNoticeHtml() -> markup for #cps-insp-notice, or '' when it should
@@ -1115,7 +1106,8 @@ var _INTAKE_QUESTIONS = [
 /*
   mockIntake(history)
   Returns { intent, matchedServices:[{id,name,category}], lane, inspectionIntent,
-            next, question:{text,multi,options,allowOther}|null, concerns }.
+            priorWorkIntent, next, question:{text,multi,options,allowOther}|null,
+            concerns }.
   `lane` is only meaningful on a finalizing result ('summarize'/'confirm');
   it mirrors what applyIntakeResult will fold into the basket entry's category.
 */
@@ -1123,6 +1115,12 @@ function mockIntake(history) {
   var concernText = S.concern || '';
   var concern     = concernText.toLowerCase();
   var inspectionIntent = detectInspectionIntent(concernText);
+  /* priorWorkIntent — same keyword detector the degrade path already uses
+     (intakeDegradeResult -> detectPriorWorkIntent), mirrored here on every
+     branch exactly like inspectionIntent above, so the mock path can
+     rehearse the step-1 -> step-4 prior-work chain end to end without a
+     live relay. */
+  var priorWorkIntent = detectPriorWorkIntent(concernText);
 
   /* --- Canned / service-name match --- */
   var matched = CONFIG.services.filter(function(svc) {
@@ -1138,6 +1136,7 @@ function mockIntake(history) {
       matchedServices:  matched.map(function(s) { return { id: s.id, name: s.name, category: serviceCategory(s.id) }; }),
       lane:             null,
       inspectionIntent: inspectionIntent,
+      priorWorkIntent:  priorWorkIntent,
       next:             'confirm',
       question:         null,
       concerns:         null
@@ -1161,6 +1160,7 @@ function mockIntake(history) {
       // supports it; this mock never exercises it.
       lane:             'tech',
       inspectionIntent: inspectionIntent,
+      priorWorkIntent:  priorWorkIntent,
       next:             'summarize',
       question:         null,
       concerns:         summary
@@ -1175,6 +1175,7 @@ function mockIntake(history) {
     matchedServices:  [],
     lane:             null,
     inspectionIntent: inspectionIntent,
+    priorWorkIntent:  priorWorkIntent,
     next:             'ask',
     question:         question,
     concerns:         null
@@ -1377,8 +1378,25 @@ function applyIntakeResult(result) {
   /* Sticky prior-work flag. Tolerant read: an older relay (the widget and the
      relay deploy on independent paths) omits the key entirely, which must read
      false, never undefined. Only ever latches TRUE — a later round about a
-     different concern must not erase what the customer already told us. */
-  if (result.priorWorkIntent === true) S.priorWorkIntent = true;
+     different concern must not erase what the customer already told us.
+
+     _priorWorkAckPending (Defect 2 fix, 2026-07-14) is the ONE-SHOT sibling
+     of the sticky flag above: set true only when THIS round carried
+     priorWorkIntent, so the guard hook's add-another routing detours through
+     Extras exactly once per prior-work round — never latched, so a LATER
+     round with no prior-work language reads it false and is not detoured.
+
+     Armed ONLY on an add-another round (S._returnTo set). The guard hook is
+     its only consumer, and the hook only runs on that path — so arming it in
+     the ordinary linear flow (prior-work stated in the FIRST concern) would
+     leave it set forever: that customer walks through Extras on their own and
+     never trips the hook, then their next ORDINARY add-another reads the
+     stale flag and gets a redundant Extras detour. The linear flow needs no
+     flag: it visits Extras anyway. */
+  if (result.priorWorkIntent === true) {
+    S.priorWorkIntent = true;
+    if (S._returnTo != null) S._priorWorkAckPending = true;
+  }
 
   /* Membership check — see doc comment above. Ids not in the live service
      list are dropped (warn-logged, never thrown); everything below applies
@@ -1851,9 +1869,30 @@ window._cpsGuardHook = function() {
        mutations (a rec toggle on Extras, for example) must NOT auto-return —
        those steps return via their own "Back to review" CTA. The auto-return
        on intake finalize remains exactly the add-more-from-Review flow,
-       which always lands on step 0. */
+       which always lands on step 0.
+
+       Prior-work exception: a second (add-another) round can itself be a
+       prior-work request ("also, do the brake work you recommended"), which
+       latches S.priorWorkIntent — but this shortcut normally jumps straight
+       to Review, skipping Extras (step 4) entirely. Extras is the ONLY step
+       that acknowledges a prior-work request (the "here is what we
+       previously recommended" / "not on file" note in renderRecommended), so
+       skipping it means the customer asked and was never answered. Route
+       through Extras once instead; its own Continue already lands on Review
+       from there, same as any ordinary visit to that step.
+
+       ONE-SHOT (Defect 2 fix, 2026-07-14): this reads S._priorWorkAckPending,
+       NOT the sticky S.priorWorkIntent — the sticky flag stays true for the
+       whole session (Extras' copy still needs it), so reading it here would
+       detour EVERY later add-another round through Extras again, even an
+       ordinary round with no prior-work language. _priorWorkAckPending is
+       set fresh by applyIntakeResult only when THIS round carried
+       priorWorkIntent, and is consumed (cleared) right here on every
+       add-another routing decision, so the detour fires exactly once per
+       prior-work round. */
     if (S._returnTo === 5 && S.intake.done && S.step === 0) {
-      S.step = 5;
+      S.step = S._priorWorkAckPending ? 4 : 5;
+      S._priorWorkAckPending = false;
       S._returnTo = null;
       if (widgetOpen) render();
     }
@@ -2182,10 +2221,33 @@ function renderHelp(body, foot, h2) {
             data-insp-remove="${esc(String(t.key))}" onclick="window._cpsInspectionSelect(this.getAttribute('data-insp-remove'))">Remove</button>
         </div>`;
     }).join('');
+    /* AI-sourced inspection intent — Defect 1 fix (2026-07-14): the AI
+       intake can flag inspectionIntent on a basket entry (path (b) in
+       recomputeInspection()'s doc comment) WITHOUT ever setting
+       S.inspection.types. That leaves S.inspection.added true with BOTH
+       tiles reading off — nothing to un-tap, and (before this fix) no
+       Remove row anywhere, so the customer could not decline an inspection
+       the shop would still book. Render one more "add-on" row, same shape
+       as the explicit ones above, whenever added is true but neither tile
+       is explicitly set. Its Remove clears inspectionIntent on every basket
+       entry that carries it (via basketEdit, below) — it must NEVER seed
+       S.inspection.types, which would swap the combined AI-fallback label
+       for per-type lines and change buildConcerns()/buildPayload() for the
+       same customer selections (see selectedInspectionLabels()). */
+    var aiInspRow = '';
+    if (S.inspection.added && !S.inspection.types.safety && !S.inspection.types.emissions) {
+      var aiInspLabel = selectedInspectionLabels()[0] || 'Virginia Safety & Emissions inspection';
+      aiInspRow = `
+        <div style="display:flex;align-items:center;gap:8px;min-height:36px">
+          <span style="flex:1;font-size:14.5px;color:var(--cps-ink)">${esc(aiInspLabel)}<span style="color:var(--cps-gray);font-size:12.5px"> · add-on</span></span>
+          <button type="button" class="cps-linkbtn"
+            data-insp-remove-ai="1" onclick="window._cpsInspectionIntentRemove()">Remove</button>
+        </div>`;
+    }
     basketHtml = `
       <div class="cps-section cps-section--em" id="cps-basket-block" style="margin-bottom:14px">
         <p class="cps-section-title" style="margin-bottom:4px">Your visit so far</p>
-        <div id="cps-basket">${rows}${inspRows}</div>
+        <div id="cps-basket">${rows}${inspRows}${aiInspRow}</div>
       </div>`;
   } else {
     basketHtml = `<div id="cps-basket"></div>`;
@@ -2518,6 +2580,26 @@ function renderHelp(body, foot, h2) {
       announce((S.inspection.types[key] ? 'Added ' : 'Removed ') + picked.label +
         (S.inspection.types[key] ? ' as a weekday drop-off add-on.' : '.'));
     }
+    render();
+  };
+
+  /* _cpsInspectionIntentRemove — Defect 1 fix (2026-07-14): removes an
+     AI-sourced inspection (inspectionIntent set on a basket entry, no
+     explicit Help-step tile pick — see the aiInspRow render block above)
+     by clearing inspectionIntent on every basket entry that carries it, via
+     basketEdit. Deliberately never touches S.inspection.types (that stays
+     the ONE source for an explicit tile pick — see recomputeInspection()'s
+     doc comment): seeding it here would swap the combined AI-fallback label
+     for per-type lines and change the wire payload for the same customer
+     selections. Only clears the flag, so the rest of that basket entry
+     (its summary, serviceIds, everything else the customer typed) is left
+     exactly as it was — declining the inspection must not also delete an
+     unrelated concern riding the same entry. */
+  window._cpsInspectionIntentRemove = function() {
+    var carriers = S.basket.filter(function(e) { return !!e.inspectionIntent; });
+    if (carriers.length === 0) return;
+    carriers.forEach(function(e) { basketEdit(e.id, { inspectionIntent: false }); });
+    announce('Removed the Virginia inspection.');
     render();
   };
 
@@ -6122,21 +6204,11 @@ function renderRecommended(body, foot, h2) {
     }
   }
 
-  /* Inspection add-on line — only while intent + eligible (weekday
-     drop-off); a checked line wired to _cpsInspToggle() so the customer can
-     opt out of the auto-add. When ineligible instead, the persistent notice
-     (shared with Confirm) explains why and offers a one-tap fix. */
-  if (S.inspection.intent && S.inspection.eligible) {
-    var inspLabels = selectedInspectionLabels();
-    var inspLabelText = (inspLabels.length ? inspLabels.join(' + ') : 'Virginia Safety & Emissions inspection') + ' (added)';
-    bodyHtml += '<div class="cps-section" id="cps-inspection-block"><p class="cps-section-title">Add-on</p>' +
-      '<label class="cps-field cps-check-row" style="display:flex;align-items:center;gap:8px;margin:0">' +
-        '<input type="checkbox" id="cps-insp-checkbox" ' + (S.inspection.added ? 'checked' : '') + ' ' +
-          'onchange="window._cpsInspToggle()" /> ' +
-        esc(inspLabelText) +
-      '</label>' +
-    '</div>';
-  }
+  /* The Extras-step inspection Add-on checkbox is REMOVED (owner decision,
+     2026-07-14): the step-0 tile is the only place an inspection is added
+     or removed now (see recomputeInspection()'s doc comment), so there is
+     nothing to render here while eligible. The ineligible notice still
+     renders — that behavior survives unchanged, shared with Confirm. */
   bodyHtml += inspectionNoticeHtml();
 
   body.innerHTML = bodyHtml;
@@ -6619,18 +6691,27 @@ function renderConfirm(body, foot, h2) {
   var customerConcerns = concernEntries.filter(function(e) { return !recsBasketIds[e.id]; });
 
   /* Services list, in display order: quick services, then Previously
-     recommended, then Due by mileage. Each carries its own Edit target
-     (quick -> step 0, Extras -> step 4). */
+     recommended, then Due by mileage, then any inspection(s) riding the
+     visit. Each carries its own Edit target (quick -> step 0, Extras ->
+     step 4, inspection -> step 0 — the step-0 tiles are the ONE place an
+     inspection is added or removed, owner decision 2026-07-14). Plain
+     name(s) from selectedInspectionLabels() — no "(added)" suffix; this is
+     now an ordinary Services line like any other, not a dedicated logistics
+     row. UI-only regrouping: buildConcerns()/buildPayload() (the wire
+     `inspection`/`concerns` fields) are unchanged — see recomputeInspection(). */
   var serviceLines = [];
   serviceEntries.forEach(function(e) { serviceLines.push({ text: basketEntryLine(e), editStep: 0 }); });
   selectedDeclined.forEach(function(s) { serviceLines.push({ text: "Previously recommended - " + s.name, editStep: 4 }); });
   selectedRecommended.forEach(function(s) { serviceLines.push({ text: "Due by mileage - " + s.name, editStep: 4 }); });
+  if (S.inspection.added) {
+    selectedInspectionLabels().forEach(function(l) { serviceLines.push({ text: l, editStep: 0 }); });
+  }
 
   /* 1b: every row carries an underlined Edit link back to its owning step
-     (Services/Concern -> 0, Day/Visit/Ride -> 1, Vehicle -> 3,
-     Inspection/Add-ons -> 4) via window._cpsEditRow, which sets the
-     generalized S._returnTo so the edited step's CTA reads "Back to
-     review" and returns directly. */
+     (Services/Concern/Inspection -> 0, Day/Visit/Ride -> 1, Vehicle -> 3,
+     Extras -> 4) via window._cpsEditRow, which sets the generalized
+     S._returnTo so the edited step's CTA reads "Back to review" and
+     returns directly. */
   function reviewRow(label, value, editStep) {
     var editHtml = (editStep == null) ? '' :
       '<button type="button" class="cps-linkbtn cps-review-edit" style="font-size:12.5px" ' +
@@ -6687,10 +6768,6 @@ function renderConfirm(body, foot, h2) {
     bodyHtml += reviewRow("Ride", "Yes, within " + CONFIG.ride.radiusMiles + " miles", 1);
   }
   bodyHtml += reviewRow("Vehicle", vehicleLabel, 3);
-  if (S.inspection.added) {
-    var confLabels = selectedInspectionLabels();
-    bodyHtml += reviewRow("Inspection", (confLabels.length ? confLabels.join(", ") : "Virginia Safety & Emissions") + " (added)", 4);
-  }
   bodyHtml += '</div>';
   /* 1b: "Add something you forgot" becomes an inline underlined link under
      the card (same addAnotherConcern('confirm') machinery — #cps-add-more
