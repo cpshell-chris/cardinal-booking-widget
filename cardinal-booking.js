@@ -286,6 +286,16 @@ const S = {
   concern:   "",
   intake:    { history: [], summary: "", done: false, entryId: null, pending: false, notice: "" }, // entryId: basket id finalized by the *current* intake run (reset by startNewConcern) — lets skipIntake tell "never finalized this round" apart from "finalized a previous round". pending: a live intake round-trip is in flight (runIntakeTracked) — renderHelp paints the thinking state from it. notice: the fast-path's visible "Added <service>." confirmation (preview feedback round 2), cleared per submit/startNewConcern
   inspectionInfo: null, // Help step only: which VA-inspection info tile (CONFIG.inspection.standalone[].key) has its advisory panel open, or null. Purely presentational — never enters the basket. Toggled by _cpsInspectionInfo, cleared by startNewConcern.
+  /* priorWorkIntent — the customer asked to have work performed that Cardinal
+     recommended on an earlier visit and they did not do at the time ("finish
+     the work you recommended"). Set by applyIntakeResult from the relay's
+     §4.1 flag and STICKY for the whole booking: it is stated once on step 1
+     but consumed three steps later on Extras, after other intake rounds may
+     have run (S.intake is reset per round by startNewConcern, so this cannot
+     live there). Read ONLY by renderRecommended — it never touches lane,
+     availability, the basket, or the create payload. resetBooking() restores
+     it from _pristineState. */
+  priorWorkIntent: false,
   basket:    [],   // v2: [{ id, kind, serviceIds, jobIds, category, summary, inspectionIntent }]
   services:  [],   // derived — do not push directly; use basketAdd/basketRemove/basketEdit
   lane:      null, // derived — 'light' | 'tech' | null (basket empty)
@@ -900,6 +910,32 @@ function detectInspectionIntent(text) {
 }
 window.detectInspectionIntent = detectInspectionIntent;
 
+/*
+  Prior-work vernacular — SINGLE SOURCE, kept in sync with the relay's
+  detectPriorWorkIntentServer_ (CardinalBooking.gs, final-review fix 1).
+  Customers who arrive after Cardinal's "come back for the work we
+  recommended" text/email blast say things like this. Deliberately
+  conservative: a false positive shows a harmless extra line on Extras, a
+  false negative delivers the exact lie the feature exists to prevent (the
+  cheerful "up to date" empty state) to a customer who explicitly asked for
+  their declined work. Does NOT match a bare "recommend" ("what do you
+  recommend?" is not this). Change all copies together.
+*/
+var PRIOR_WORK_VERNACULAR_SRC = '\\b(work you recommended|recommended work|you recommended|previously recommended|declined|turned down|passed on|last visit|last time you|told me about|message you sent|text you sent|finish the work|complete the work)\\b';
+
+/*
+  detectPriorWorkIntent(text) -> bool
+  Used directly by intakeDegradeResult() so a degraded intake round (budget
+  caps, throttle, missing key, model error) never silently drops
+  priorWorkIntent for a customer whose own wording already says it plainly —
+  the degrade path is most likely to fire under exactly the load a marketing
+  blast to this cohort creates.
+*/
+function detectPriorWorkIntent(text) {
+  return new RegExp(PRIOR_WORK_VERNACULAR_SRC, 'i').test(String(text || ''));
+}
+window.detectPriorWorkIntent = detectPriorWorkIntent;
+
 /* ============================================================================
    DETERMINISTIC SERVICE FAST-PATH  (preview feedback round 2 — the owner's
    request). A customer who NAMES a service ("oil change") should see it land
@@ -1184,6 +1220,13 @@ function _getIntakeSessionId() {
     concerns:null with a non-'ask' next IS valid while matchedServices is
     non-empty — the live service short-circuit (captured 2026-07-03) ships
     exactly that shape.
+
+    priorWorkIntent is DELIBERATELY not validated here. The widget bundle and
+    the relay ship on two independent deploy paths, so during any deploy window
+    one side is older than the other. A `typeof !== 'boolean'` reject would make
+    a new widget degrade EVERY customer to skip-intake against a relay that has
+    not shipped the field yet. applyIntakeResult reads it tolerantly instead
+    (`=== true`), so an absent key simply means false.
 */
 function isValidIntakeResult(obj) {
   if (!obj || typeof obj !== 'object') return false;
@@ -1223,7 +1266,10 @@ window.isValidIntakeResult = isValidIntakeResult;
   the owner rightly flagged). Finalizes THIS round with the customer's own
   typed text as a plain concern entry — no invented questions, no rewrite,
   category fail-safe 'tech' — so a relay hiccup degrades to skip-intake and
-  never blocks (or fakes) the booking conversation.
+  never blocks (or fakes) the booking conversation. inspectionIntent and
+  priorWorkIntent are both recovered via keyword detection (final-review fix
+  1) rather than hardcoded false — a degrade must not silently discard
+  intent the customer's own wording already makes plain.
 */
 function intakeDegradeResult() {
   var text = (S.concern || '').trim();
@@ -1232,6 +1278,7 @@ function intakeDegradeResult() {
     matchedServices:  [],
     lane:             'tech',
     inspectionIntent: detectInspectionIntent(text),
+    priorWorkIntent:  detectPriorWorkIntent(text),
     next:             'summarize',
     question:         null,
     concerns:         text
@@ -1326,6 +1373,12 @@ function applyIntakeResult(result) {
   if (result.question) {
     S.intake.history.push({ role: 'assistant', content: result.question });
   }
+
+  /* Sticky prior-work flag. Tolerant read: an older relay (the widget and the
+     relay deploy on independent paths) omits the key entirely, which must read
+     false, never undefined. Only ever latches TRUE — a later round about a
+     different concern must not erase what the customer already told us. */
+  if (result.priorWorkIntent === true) S.priorWorkIntent = true;
 
   /* Membership check — see doc comment above. Ids not in the live service
      list are dropped (warn-logged, never thrown); everything below applies
@@ -2188,7 +2241,7 @@ function renderHelp(body, foot, h2) {
       <label for="cps-concern" class="cps-section-title" style="display:block">Something else going on?</label>
       <div class="cps-concern-wrap">
         <textarea id="cps-concern" class="cps-textarea" style="min-height:64px"
-          placeholder="e.g. Noise when braking, tire looks low..."
+          placeholder="e.g. Noise when braking, tire looks low, finish work you recommended..."
           oninput="window._cpsConcernInput(this)"
           onkeydown="window._cpsConcernKeydown(event)"
         ></textarea>
@@ -5981,8 +6034,29 @@ function renderRecommended(body, foot, h2) {
 
   var bodyHtml = '<p class="cps-steptitle">Recommended for your vehicle</p>';
 
+  /* Prior-work acknowledgment (S.priorWorkIntent, set on step 1 by the AI
+     intake). The customer asked us to pull the work we recommended on an
+     earlier visit, so this step owes them an answer either way.
+     - Found: name the list as the thing they asked for.
+     - Not found (wrong number, different vehicle, RO too old): say so plainly.
+       The stock empty state below ("up to date, nothing else to recommend")
+       is actively WRONG here — someone who asked for their declined work and
+       is told there is nothing to recommend concludes we lost it. */
+  var priorWorkNote = '';
+  if (S.priorWorkIntent) {
+    priorWorkNote = declined.length > 0
+      ? '<p class="cps-stepsub">Here is the work we previously recommended for your vehicle.</p>'
+      : '<p class="cps-stepsub">We did not find previously recommended work on file for this vehicle. ' +
+        'Your service advisor will pull your history before your visit.</p>';
+  }
+  bodyHtml += priorWorkNote;
+
   if (declined.length === 0 && recommended.length === 0 && !S.recs.clearwayLoading) {
-    bodyHtml += '<p class="cps-stepsub">Your vehicle is up to date. Nothing else to recommend right now.</p>';
+    /* Suppressed for a prior-work customer: priorWorkNote already told them
+       the honest version, and "nothing else to recommend" would contradict it. */
+    if (!S.priorWorkIntent) {
+      bodyHtml += '<p class="cps-stepsub">Your vehicle is up to date. Nothing else to recommend right now.</p>';
+    }
   } else {
     bodyHtml += '<p class="cps-stepsub">Optional: add any of these to your visit, or skip.</p>';
 
