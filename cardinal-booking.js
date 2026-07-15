@@ -6337,10 +6337,14 @@ window.buildConcerns = buildConcerns;
   - afterHours: ALWAYS false (preview feedback round 3 — the after-hours
     checkbox is removed; the key kept for payload/relay compat, the relay's
     AFTER_HOURS_DROP_OFF enum simply never fires from this widget).
-  - courtesy: derived from the ride checkbox — S.sched.ride gated on
-    drop-off handling (same gate as commit 4e00b5e); the relay maps it to
-    requestCourtesyTransportation. S.sched.courtesy itself is legacy state
-    the UI no longer writes and this field no longer reads.
+  - courtesy: ALWAYS false (2026-07-15 owner ask — DECOUPLED from the ride
+    checkbox). It formerly derived from S.sched.ride gated on drop-off, and the
+    relay maps it to requestCourtesyTransportation — which Tekmetric's scheduler
+    renders as "loaner requested". A ride (we drive you / you drop off) is not a
+    loaner car, so a ride request must not flip that flag. The ride still reaches
+    the shop via the ***WILL NEED RIDE*** first line in buildConcerns(); the wire
+    field just stays off. Key kept for relay compat. S.sched.courtesy is legacy
+    state the UI no longer writes and this field no longer reads.
   - date / slotTime: S.sched.date / S.sched.slot straight through. slotTime
     is '' for a day-only handling (no slot picker rendered) rather than
     undefined, so the relay always sees a string.
@@ -6426,7 +6430,12 @@ function buildPayload() {
     whiteGlove:          S.sched.handling === 'whiteglove',
     inspection:          S.inspection.added,
     afterHours:          false,
-    courtesy:            S.sched.handling === 'dropoff' && S.sched.ride,
+    // courtesy — DECOUPLED from the ride checkbox (2026-07-15, owner ask): a
+    // ride request must NOT auto-flip Tekmetric's requestCourtesyTransportation,
+    // which the scheduler renders as "loaner requested" (a loaner car ≠ a ride).
+    // The ride still reaches the shop via the ***WILL NEED RIDE*** first line in
+    // buildConcerns(); the wire field simply stays off. Key kept for relay compat.
+    courtesy:            false,
     date:                S.sched.date,
     slotTime:            S.sched.slot,
     customer:            customer,
