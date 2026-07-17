@@ -40,7 +40,7 @@ const CONFIG = {
   googleMapsKey:        "AIzaSyCN_r-9GRtrwLigb91l0jkv4shI3nihIMc",
   addressAutocomplete:  true,
   intakeMinQuestions:   3,
-  intakeMaxQuestions:   6,
+  intakeMaxQuestions:   10,
   intakeTimeoutMs:      20000,         // live intake fetch abort bound — past it, honest degrade (never a hang)
   avgMilesPerDay:       37,
   historyRecs:          true,          // Layer B kill switch: false = Extras uses the generic matrix only
@@ -87,9 +87,16 @@ const CONFIG = {
      renders a calm inline link to the site's tire shop page (new tab, never
      navigates the widget away, never blocks booking). Either value being
      falsy turns the notice off. The service is identified by NAME against
-     the live list — config, not a hardcoded id. */
+     the live list — config, not a hardcoded id.
+     Broadened (spec §5b): the notice is no longer replacement-only. Any
+     tire mention — the typed concern, a Q&A answer, or a tire-named service
+     in the basket — surfaces it too (see tireMentionActive(), the superset
+     trigger). Copy is CONFIG-driven (tireNoticeCopy / tireNoticeLinkLabel),
+     not hardcoded in the render function. */
   tirePricingUrl:       "https://www.cardinalplazashell.com/tire-services#!tires/search?bp=tire&location_id=6647&search_by=size&type=passenger&season=2",
   tireReplacementServiceName: "Tire Replacement",
+  tireNoticeCopy:       "Curious about tire prices?",
+  tireNoticeLinkLabel:  "Browse and order tires on our tire center page.",
   hours:                {},            // populated from settings at runtime
   capacity:             {},            // populated from settings at runtime
   minNotice:            { value: 1, unit: "hour" },
@@ -284,7 +291,7 @@ if (Array.isArray(CONFIG.services) && CONFIG.services.length === 0) {
 const S = {
   step:      0,
   concern:   "",
-  intake:    { history: [], summary: "", done: false, entryId: null, pending: false, notice: "" }, // entryId: basket id finalized by the *current* intake run (reset by startNewConcern) — lets skipIntake tell "never finalized this round" apart from "finalized a previous round". pending: a live intake round-trip is in flight (runIntakeTracked) — renderHelp paints the thinking state from it. notice: the fast-path's visible "Added <service>." confirmation (preview feedback round 2), cleared per submit/startNewConcern
+  intake:    { history: [], summary: "", done: false, entryId: null, pending: false, notice: "", wrapUp: false, guard: null }, // entryId: basket id finalized by the *current* intake run (reset by startNewConcern) — lets skipIntake tell "never finalized this round" apart from "finalized a previous round". pending: a live intake round-trip is in flight (runIntakeTracked) — renderHelp paints the thinking state from it. notice: the fast-path's visible "Added <service>." confirmation (preview feedback round 2), cleared per submit/startNewConcern. wrapUp: transient round flag — the next intake round is a wrap-up (summarize now); guard: the mid-Q&A Continue/Skip notice, null | 'continue' | 'skip' (Task 6 consumes)
   inspectionInfo: null, // Help step only: which VA-inspection info tile (CONFIG.inspection.standalone[].key) has its advisory panel open, or null. Purely presentational — never enters the basket. Toggled by _cpsInspectionInfo, cleared by startNewConcern.
   /* priorWorkIntent — the customer asked to have work performed that Cardinal
      recommended on an earlier visit and they did not do at the time ("finish
@@ -1126,7 +1133,17 @@ function mockIntake(history) {
   var matched = CONFIG.services.filter(function(svc) {
     return concern.includes(svc.name.toLowerCase()) ||
            svc.name.toLowerCase().split(' ').some(function(word) {
-             return word.length > 3 && concern.includes(word.toLowerCase());
+             if (word.length <= 3) return false;
+             /* Word-boundary match (not a bare substring test): a bare
+                .includes() let a short service word match inside a longer,
+                unrelated word — e.g. "tire" (from "Tire Rotation") inside
+                "tired" ("the engine sounds tired") falsely added a tire
+                service to the basket. Service names are live data (never
+                hardcoded — see CLAUDE.md), so a name with a regex
+                metacharacter falls back to the old substring test rather
+                than throwing. */
+             try { return new RegExp('\\b' + word + '\\b').test(concern); }
+             catch (_e) { return concern.includes(word); }
            });
   });
 
@@ -1264,16 +1281,31 @@ window.isValidIntakeResult = isValidIntakeResult;
   The widget-side mirror of the relay's degradeIntakeResult_: an HONEST
   degrade for live-path failures (preview feedback round 2 — replaces the
   old silent mockIntake fallback, which conjured a generic fake question
-  the owner rightly flagged). Finalizes THIS round with the customer's own
-  typed text as a plain concern entry — no invented questions, no rewrite,
-  category fail-safe 'tech' — so a relay hiccup degrades to skip-intake and
-  never blocks (or fakes) the booking conversation. inspectionIntent and
-  priorWorkIntent are both recovered via keyword detection (final-review fix
-  1) rather than hardcoded false — a degrade must not silently discard
-  intent the customer's own wording already makes plain.
+  the owner rightly flagged). Finalizes THIS round with a plain concern
+  entry — no invented questions, no rewrite, category fail-safe 'tech' —
+  so a relay hiccup degrades to skip-intake and never blocks (or fakes) the
+  booking conversation. inspectionIntent and priorWorkIntent are both
+  recovered via keyword detection (final-review fix 1) rather than
+  hardcoded false — a degrade must not silently discard intent the
+  customer's own wording already makes plain.
+
+  History-aware on EVERY degrade, not just wrap-up (final pre-merge fix —
+  mirrors the relay's degradeIntakeResult_, which was just made
+  history-aware unconditionally): intakeProvider's catch routes EVERY
+  live-path failure here, including an ordinary mid-Q&A relay timeout that
+  has nothing to do with the "Wrap it up and continue" guard. Gating the
+  history rebuild on S.intake.wrapUp meant that same-shaped failure still
+  discarded every answer the customer had already given. `concerns` is now
+  always built from wrapUpSummaryText() (same idiom as wrapUpMockResult()),
+  falling back to the trimmed typed text only when that returns empty — the
+  ordinary first-turn degrade (no answers gathered yet, no history) still
+  yields the plain typed text unchanged, because wrapUpSummaryText() itself
+  reduces to that same text when there is nothing to add. Any degrade that
+  HAS gathered answers now preserves them, wrap-up or not.
 */
 function intakeDegradeResult() {
   var text = (S.concern || '').trim();
+  var concerns = wrapUpSummaryText() || text;
   return {
     intent:           'concern',
     matchedServices:  [],
@@ -1282,7 +1314,7 @@ function intakeDegradeResult() {
     priorWorkIntent:  detectPriorWorkIntent(text),
     next:             'summarize',
     question:         null,
-    concerns:         text
+    concerns:         concerns
   };
 }
 window.intakeDegradeResult = intakeDegradeResult;
@@ -1322,7 +1354,8 @@ function intakeProvider(history) {
     services:  CONFIG.services.map(function(s) {
       return { id: s.id, name: s.name, category: serviceCategory(s.id) };
     }),
-    honeypot:  hp ? hp.value : ''
+    honeypot:  hp ? hp.value : '',
+    wrapUp:    S.intake.wrapUp === true
   });
   /* Timeout bound — typeof-guarded (a browser without AbortController just
      keeps the unbounded pre-fix behavior rather than throwing); the timer
@@ -1371,6 +1404,7 @@ window.intakeProvider = intakeProvider;
     basket entry carrying the lane-derived category + inspection intent.
 */
 function applyIntakeResult(result) {
+  S.intake.wrapUp = false; // the round that carried it has returned — live, mock, or degrade
   if (result.question) {
     S.intake.history.push({ role: 'assistant', content: result.question });
   }
@@ -1522,7 +1556,7 @@ function _cpsClearConcernBox() {
 */
 function runIntake() {
   if (!(CONFIG.backendUrl && CONFIG.AI_ON)) {
-    var result = mockIntake(S.intake.history);
+    var result = S.intake.wrapUp === true ? wrapUpMockResult() : mockIntake(S.intake.history);
     applyIntakeResult(result);
     render();
     return Promise.resolve(result);
@@ -1647,6 +1681,7 @@ window.gatherSummaryText = gatherSummaryText;
 */
 function answerIntakeChoice(values, otherText) {
   if (_intakeRoundBusy || S.intake.pending) return;
+  S.intake.guard = null; // answering means keep going — dismiss any pending wrap-up guard notice
   var vals    = values || [];
   var other   = (otherText || '').trim();
   var content = vals.join(', ') + (other ? '; ' + other : '');
@@ -1656,6 +1691,38 @@ function answerIntakeChoice(values, otherText) {
   runIntakeTracked();
 }
 window.answerIntakeChoice = answerIntakeChoice;
+
+/* wrapUpSummaryText() — gatherSummaryText without the display prefix: the
+   concern + answers as one plain line, for wrap-up fallback summaries. */
+function wrapUpSummaryText() {
+  var full = gatherSummaryText();
+  return full ? full.replace(/^So far: /, '') : '';
+}
+
+/* wrapUpMockResult() — the mock/no-backend parity for a wrap-up round: a
+   deterministic summarize built from everything gathered (spec §7). Shape-
+   identical to §4.1. */
+function wrapUpMockResult() {
+  return {
+    intent: 'concern',
+    matchedServices: [],
+    lane: null,
+    inspectionIntent: detectInspectionIntent(S.concern),
+    priorWorkIntent: detectPriorWorkIntent(S.concern),
+    next: 'summarize',
+    question: null,
+    concerns: wrapUpSummaryText() || (S.concern || '').trim()
+  };
+}
+
+/* _cpsIntakeWrapUp() — the customer's brake (spec §7): finalize now from
+   everything gathered. Same busy guards as answerIntakeChoice. */
+function _cpsIntakeWrapUp() {
+  if (_intakeRoundBusy || S.intake.pending) return;
+  S.intake.wrapUp = true;
+  runIntakeTracked();
+}
+window._cpsIntakeWrapUp = _cpsIntakeWrapUp;
 
 /* skipIntake() — marks intake done. Per the carried Task-2 review finding:
    if the customer typed a concern but this *run* of intake never finalized a
@@ -1684,7 +1751,95 @@ function foldConcernDraft() {
   return true;
 }
 
+/* _cpsMidQA() — is there UNSAVED Q&A work: the round has answers the
+   customer typed/tapped (user turns) and never finalized. Zero answers =
+   nothing to protect (the raw-text fold already covers the typed draft). */
+function _cpsMidQA() {
+  if (S.intake.done) return false;
+  return S.intake.history.some(function(t) { return t && t.role === 'user'; });
+}
+
+/* _cpsAdvanceFromHelp() — the step-1 advance, extracted from _cpsConcernNext
+   so the guard's wrap-up path can reuse it verbatim (spec §8).
+   Guard-path interaction: when this runs after _cpsGuardWrapUp's
+   runIntakeTracked(), the just-finalized round may have already gone through
+   _cpsGuardHook (basketAdd -> recomputeBasket -> the hook) BEFORE this
+   function is reached — and that hook has its own _returnTo===5 auto-return
+   (see its "Return-to-Confirm" branch), which fires first and already moved
+   S.step off 0 and cleared S._returnTo. Bail out rather than re-deciding and
+   clobbering that already-correct routing. This can't happen on the plain
+   Continue path (foldConcernDraft's basketAdd runs before S.intake.done is
+   set true, so the hook's condition isn't met yet there).
+
+   Dismiss-path interaction (Task 6 review finding 2): when _cpsGuardHook did
+   NOT already decide (the bail-out above didn't fire — e.g. the Dismiss
+   path's foldConcernDraft() fold happens with S.intake.done already true,
+   same as the plain Continue path), this function is the one making the
+   _returnTo===5 call, and it must mirror the hook's own Return-to-Confirm
+   branch exactly: route through Extras (step 4) when a prior-work round is
+   still owed its one-shot acknowledgement (S._priorWorkAckPending), else
+   straight to Review (step 5) — and consume the flag the same way the hook
+   does (set S.step from it, then clear the flag, then clear _returnTo).
+   Leaving it latched here would skip Extras on this path (the defect this
+   fix closes) while it doubles up on the customer's next add-another round. */
+function _cpsAdvanceFromHelp() {
+  if (S.step !== 0) return; // already routed away by a side effect of the just-finalized round
+  if (S.basket.length === 0) {
+    render();
+    var ta = document.getElementById('cps-concern');
+    if (ta) ta.focus();
+    return;
+  }
+  if (S._returnTo === 5) {
+    S.step = S._priorWorkAckPending ? 4 : 5;
+    S._priorWorkAckPending = false;
+    S._returnTo = null;
+    render();
+    return;
+  }
+  S.step = 1;
+  render();
+}
+
+/* _cpsGuardWrapUp() — guard primary action: wrap the answers into a real
+   summary, then advance (continue) or stay (skip). Returns the round's
+   promise so tests can await the advance. Degrade path: a failed live call
+   still resolves (intakeDegradeResult -> summarize raw text) — saving
+   details never blocks booking.
+   Task 6 review finding 4: exposed on window, so guard against being called
+   with no guard armed (S.intake.guard === null) — both real destinations
+   (the button click and the notice's own dismissal) remove the notice
+   first, so this isn't reachable through the UI today, but without the
+   check a stray call would run a fresh round and duplicate the basket
+   entry. Bail out before the existing busy check so an unarmed call is
+   always a no-op regardless of round state. */
+function _cpsGuardWrapUp() {
+  if (!S.intake.guard) return Promise.resolve(null);
+  if (_intakeRoundBusy || S.intake.pending) return Promise.resolve(null);
+  var dest = S.intake.guard;
+  S.intake.guard = null;
+  S.intake.wrapUp = true;
+  return runIntakeTracked().then(function(result) {
+    if (dest === 'continue' && S.intake.done) _cpsAdvanceFromHelp();
+    return result;
+  });
+}
+window._cpsGuardWrapUp = _cpsGuardWrapUp;
+
+/* _cpsGuardDismiss() — guard quiet action: today's behavior, by explicit
+   choice. Continue: fold raw text + advance. Skip: fold raw text + stay. */
+function _cpsGuardDismiss() {
+  var dest = S.intake.guard;
+  S.intake.guard = null;
+  foldConcernDraft();
+  S.intake.done = true;
+  _cpsClearConcernBox();
+  if (dest === 'continue') { _cpsAdvanceFromHelp(); } else { render(); }
+}
+window._cpsGuardDismiss = _cpsGuardDismiss;
+
 function skipIntake() {
+  if (_cpsMidQA() && !S.intake.guard) { S.intake.guard = 'skip'; render(); return; }
   foldConcernDraft();
   S.intake.done = true;
   _cpsClearConcernBox(); // round 3: the fold is an add — the box clears for the next entry
@@ -1705,6 +1860,8 @@ function startNewConcern() {
   S.intake.entryId = null;
   S.intake.pending = false; // paint state only — the in-flight latch (if any) releases itself on settle
   S.intake.notice  = '';
+  S.intake.wrapUp  = false;
+  S.intake.guard   = null;
   S.inspectionInfo = null; // close any open VA-inspection advisory panel
   S.concern        = '';
   var ta = document.getElementById('cps-concern');
@@ -1964,17 +2121,41 @@ function tireReplacementActive() {
 window.tireReplacementActive = tireReplacementActive;
 
 /*
-  tireNoticeHtml() -> markup for #cps-tire-notice, or '' when the round does
-  not involve tire replacement. A calm inline pointer to the site's tire
-  shop page: opens in a NEW TAB (target="_blank" rel="noopener"), never
-  navigates the widget away, never blocks or gates the booking. Price-free
-  copy ("prices" names the page's purpose, quotes nothing).
+  tireMentionActive() -> bool (spec §5b broadening): the §5b soft link shows
+  on ANY tire signal — the replacement signal above, a word-boundary tire
+  mention in the customer's own text (typed concern or a Q&A answer; 'tired'
+  must not match), or any tire-named service in the basket (covers the
+  keyword fast-path, where no AI call ever happens).
+*/
+function tireMentionActive() {
+  if (!CONFIG.tirePricingUrl) return false;
+  if (tireReplacementActive()) return true;
+  var re = /\btires?\b/i;
+  if (re.test(S.concern || '')) return true;
+  var mentioned = S.intake.history.some(function(t) {
+    return t && t.role === 'user' && re.test(String(t.content || ''));
+  });
+  if (mentioned) return true;
+  return CONFIG.services.some(function(s) {
+    return S.services.indexOf(s.id) !== -1 && re.test(String(s.name || ''));
+  });
+}
+window.tireMentionActive = tireMentionActive;
+
+/*
+  tireNoticeHtml() -> markup for #cps-tire-notice, or '' when the round shows
+  no tire signal at all (see tireMentionActive() for the full trigger set).
+  A calm inline pointer to the site's tire shop page: opens in a NEW TAB
+  (target="_blank" rel="noopener"), never navigates the widget away, never
+  blocks or gates the booking. Copy is CONFIG-driven (tireNoticeCopy /
+  tireNoticeLinkLabel) — price-free ("prices" names the page's purpose,
+  quotes nothing).
 */
 function tireNoticeHtml() {
-  if (!tireReplacementActive()) return '';
+  if (!tireMentionActive()) return '';
   return '<p id="cps-tire-notice" class="cps-hint" role="note" style="margin-top:10px">' +
-    esc('Want to compare tires and prices first?') + ' ' +
-    '<a href="' + esc(CONFIG.tirePricingUrl) + '" target="_blank" rel="noopener">Open our tire shop page.</a>' +
+    esc(CONFIG.tireNoticeCopy) + ' ' +
+    '<a href="' + esc(CONFIG.tirePricingUrl) + '" target="_blank" rel="noopener">' + esc(CONFIG.tireNoticeLinkLabel) + '</a>' +
     '</p>';
 }
 
@@ -2069,7 +2250,28 @@ function renderHelp(body, foot, h2) {
         <div id="cps-intake-opts">${optsHtml}</div>
         ${otherHtml}
         ${continueHtml}
+        <div style="margin-top:10px">
+          <a href="#" class="cps-skip" id="cps-wrapup"
+            ${S.intake.pending ? 'aria-disabled="true" style="opacity:.5;pointer-events:none"' : ''}
+            onclick="event.preventDefault();window._cpsIntakeWrapUp()">That's enough questions. Wrap it up.</a>
+        </div>
       </div>`;
+    if (S.intake.guard) {
+      var guardPrimary = S.intake.guard === 'continue' ? 'Wrap it up and continue' : 'Wrap it up';
+      var guardQuiet   = S.intake.guard === 'continue' ? 'Continue without them'  : 'Skip anyway';
+      followUpHtml += `
+      <div id="cps-guard" role="alert" class="cps-field"
+        style="margin:12px 0 0;padding:12px;border:2px solid var(--cps-yellow);border-radius:var(--cps-radius-ctl)">
+        <p style="margin:0 0 10px;font-size:14.5px;color:var(--cps-ink)">You've shared some helpful details about this concern. Want to include them?</p>
+        <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+          <button class="cps-btn cps-btn-primary" style="flex:unset;padding:8px 18px;font-size:14px" ${dis}
+            onclick="window._cpsGuardWrapUp()">${guardPrimary}</button>
+          <a href="#" class="cps-skip" id="cps-guard-dismiss"
+            ${S.intake.pending ? 'aria-disabled="true" style="opacity:.5;pointer-events:none"' : ''}
+            onclick="event.preventDefault();window._cpsGuardDismiss()">${guardQuiet}</a>
+        </div>
+      </div>`;
+    }
   }
 
   /* roundIdle — no intake round is half-finished: either this round already
@@ -2346,6 +2548,7 @@ function renderHelp(body, foot, h2) {
 
   /* --- Wire up UI handlers --- */
   window._cpsConcernNext = function() {
+    if (_cpsMidQA() && !S.intake.guard) { S.intake.guard = 'continue'; render(); return; }
     /* Never silently drop an un-submitted concern draft: fold it into the
        visit as a plain concern first (NO forced AI Q&A — the button/Enter are
        the paths that start intake), then advance. Owner feedback: it was too
@@ -2355,19 +2558,7 @@ function renderHelp(body, foot, h2) {
       S.intake.done = true;
       _cpsClearConcernBox();
     }
-    if (S.basket.length === 0) {
-      var ta = document.getElementById("cps-concern");
-      if (ta) ta.focus();
-      return;
-    }
-    if (S._returnTo === 5) {
-      S._returnTo = null;
-      S.step = 5;
-      render();
-      return;
-    }
-    S.step = 1;
-    render();
+    _cpsAdvanceFromHelp();
   };
 
   /* _cpsConcernSubmit — the explicit intake trigger (Enter in the textarea;
