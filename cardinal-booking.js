@@ -396,6 +396,7 @@ const _pristineState = JSON.parse(JSON.stringify(S));
 function resetBooking() {
   const fresh = JSON.parse(JSON.stringify(_pristineState));
   Object.keys(fresh).forEach(function(k) { S[k] = fresh[k]; });
+  if (typeof _tcResetForNewBooking === 'function') _tcResetForNewBooking();
 }
 window.resetBooking = resetBooking;
 
@@ -2369,6 +2370,21 @@ window.addTireOrderEntry = addTireOrderEntry;
    ============================================================================ */
 var _tcState = { scriptRequested: false, initDone: false, widget: null, lastSelect: null, captured: null, timedOut: false, sessionSelect: null, sessionCaptured: false, lastOrder: null };
 window._tcState = _tcState;
+
+/* _tcResetForNewBooking() — the tire order-tracking state is per-BOOKING but
+   lives module-side (outside S), so resetBooking() must clear it explicitly or
+   a finished order leaks into the next customer's booking (owner-reported
+   2026-07-20). The loaded script/widget (scriptRequested/initDone/widget) is
+   per-PAGE and is PRESERVED — re-loading would re-init the embed. */
+function _tcResetForNewBooking() {
+  _tcState.captured = null;
+  _tcState.lastOrder = null;
+  _tcState.lastSelect = null;
+  _tcState.sessionSelect = null;
+  _tcState.sessionCaptured = false;
+  _tcState.timedOut = false;
+}
+window._tcResetForNewBooking = _tcResetForNewBooking;
 
 function _tcFallback() {
   var fb = document.getElementById('cps-tc-fallback');
