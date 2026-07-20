@@ -115,11 +115,11 @@ const CONFIG = {
     backLabel:           "Back to booking",
     removeHint:          "Your tire order stays active; call us to change it.",
     offerCopy:           "Want to pick out your tires and lock in your order now?",
-    closeAskCopy:        "Did you place a tire order?",
+    closeAskCopy:        "Did you order tires or request an appointment through the tire center?",
     suppressAppointment: false,   // spike 2026-07-17: reject()-ing TC's date step BLOCKS ordering (TC requires an install time). Never suppress.
     autoServiceKeys:     ["price_car_mounting", "disposal_fee", "valve_stem"], // TC service keys that are automatic (mount/balance, disposal, VA tire tax) — EXCLUDED from the advisor note; everything else of type "Service" is a customer-chosen add-on that IS listed.
     captureEvents:       ["onOrderSubmitted", "onAppointmentSubmitted", "onSupplierOrderSubmitted"], // events marking a COMPLETED (paid) order -> trigger capture. onSupplierOrderSubmitted added as a likely payment-completion event (spike stopped at the card wall; the exact event was unconfirmed). Pre-payment events (onOrder_Date*) are NEVER listed here.
-    debug:               true, // TEMPORARY (live-diagnosing the 3 TireConnect end-actions): console-log each tire event. Flip false once capture is confirmed.
+    debug:               false, // console-logs each tire event when flipped true; diagnosis of the 3 TireConnect end-actions is done (2026-07-20), kept for future debugging.
     timePrefLead:        "For your tire install you chose",
     timePrefTail:        "Confirm your appointment time below, or pick another available time.",
     initTimeoutMs:       15000,
@@ -2302,19 +2302,21 @@ window.fmtTirePrefTime = fmtTirePrefTime;
    install time append AFTER the frozen base — never rewrite it. */
 function tireOrderSummary(order) {
   var o = order || {};
-  var head = 'Online tire order #' + String(o.orderNumber || '').trim();
+  var num = String(o.orderNumber || '').trim();
+  var noun = (o.kind === 'appointment') ? 'Online tire appointment request' : 'Online tire order';
+  var head = num ? (noun + ' #' + num) : noun;
   var items = (o.items || []).map(function(it) {
-    var bits = [String(it.qty || 1) + 'x', it.brand, it.model, it.size]
-      .filter(Boolean).join(' ');
+    var bits = [String(it.qty || 1) + 'x', it.brand, it.model, it.size].filter(Boolean).join(' ');
     return it.part ? bits + ' (part ' + it.part + ')' : bits;
   }).filter(Boolean);
   var line = items.length ? head + ': ' + items.join('; ') + '.' : head + '.';
   var total = fmtMoneyTc(o.total);
   var dep = fmtMoneyTc(o.deposit);
   if (total) line += ' Order total ' + total + '.';
-  if (dep) line += ' Deposit ' + dep + '.';
+  if (dep && o.kind !== 'appointment') line += ' Deposit ' + dep + '.';
   if (o.addons && o.addons.length) line += ' Add-ons: ' + o.addons.join(', ') + '.';
   if (o.preferredTime) line += ' Requested install: ' + fmtTirePrefTime(o.preferredTime) + '.';
+  if (o.notes) line += ' Notes: ' + o.notes + '.';
   return line;
 }
 window.tireOrderSummary = tireOrderSummary;
@@ -2326,7 +2328,9 @@ window.tireOrderSummary = tireOrderSummary;
    2026-07-17: chosen add-ons + install time append too (neither is a price). */
 function tireOrderLineNoPrice(order) {
   var o = order || {};
-  var head = 'Online tire order #' + String(o.orderNumber || '').trim();
+  var num = String(o.orderNumber || '').trim();
+  var noun = (o.kind === 'appointment') ? 'Online tire appointment request' : 'Online tire order';
+  var head = num ? (noun + ' #' + num) : noun;
   var items = (o.items || []).map(function(it) {
     var bits = [String(it.qty || 1) + 'x', it.brand, it.model, it.size].filter(Boolean).join(' ');
     return it.part ? bits + ' (part ' + it.part + ')' : bits;
@@ -2334,6 +2338,7 @@ function tireOrderLineNoPrice(order) {
   var line = items.length ? head + ': ' + items.join('; ') + '.' : head + '.';
   if (o.addons && o.addons.length) line += ' Add-ons: ' + o.addons.join(', ') + '.';
   if (o.preferredTime) line += ' Requested install: ' + fmtTirePrefTime(o.preferredTime) + '.';
+  if (o.notes) line += ' Notes: ' + o.notes + '.';
   return line;
 }
 window.tireOrderLineNoPrice = tireOrderLineNoPrice;
@@ -2399,15 +2404,17 @@ function _tcFallback() {
    `data.customer.preferred_time`; tolerant fallbacks cover any variant. */
 function tcNormalizeOrder(data) {
   if (!data || typeof data !== 'object') return null;
-  // Spike 2026-07-17: order fields nest under `quote`; fall back to top-level for any variant.
   var q = (data.quote && typeof data.quote === 'object') ? data.quote : {};
-  // Per-field fallback: read from data.quote first, else top-level data. Robust
-  // whether a field nests under `quote` (search+DateSelected shape) or sits at
-  // top level (the onOrderSubmitted shape was never observed in the spike).
   function tcField(k) { return q[k] !== undefined ? q[k] : data[k]; }
-  var num = tcField('order_number') || tcField('order_id') || tcField('orderId') || tcField('id');
-  if (num === undefined || num === null || num === '') return null;
+  // An ORDER (paid flow) carries order_number; an APPOINTMENT REQUEST (no-payment
+  // flow) carries appointment_number. Accept either. The number is assigned at
+  // final submit, so earlier flow events have tires but no number yet.
+  var orderNum = tcField('order_number') || tcField('order_id') || tcField('orderId') || tcField('id');
+  var apptNum = tcField('appointment_number');
+  var num = orderNum || apptNum || '';
   var rawItems = tcField('tires') || tcField('items') || [];
+  // Real tire engagement needs a number OR tires; a bare event with neither is not an order.
+  if (!num && (!rawItems || !rawItems.length)) return null;
   var items = [];
   for (var i = 0; i < rawItems.length; i++) {
     var r = rawItems[i] || {};
@@ -2423,7 +2430,6 @@ function tcNormalizeOrder(data) {
     : (tcField('total') !== undefined ? tcField('total') : (q.prices && q.prices.total)));
   var depV = Number(tcField('deposit_payment') !== undefined ? tcField('deposit_payment')
     : (q.prices && q.prices.deposit_payment));
-  // Chosen add-ons: type "Service" services that are NOT in the automatic set (mount/balance, disposal, VA tax).
   var autoKeys = (CONFIG.tireShop && CONFIG.tireShop.autoServiceKeys) || [];
   var addons = [];
   var rawSvcs = tcField('services') || [];
@@ -2431,26 +2437,28 @@ function tcNormalizeOrder(data) {
     var s = rawSvcs[j] || {};
     if (s && s.type === 'Service' && autoKeys.indexOf(s.key) === -1 && s.name) addons.push(String(s.name));
   }
-  // The install time the customer picks in TireConnect (required to order); top-level customer, quote fallback.
-  var pref = (data.customer && data.customer.preferred_time)
-    || (q.customer && q.customer.preferred_time) || '';
-  var status = tcField('status');
+  var cust = (data.customer && typeof data.customer === 'object') ? data.customer
+    : ((q.customer && typeof q.customer === 'object') ? q.customer : {});
   return {
-    orderNumber: String(num),
+    kind: orderNum ? 'order' : (apptNum ? 'appointment' : 'order'),
+    orderNumber: String(num || ''),
     items: items,
     total: isFinite(totalV) ? totalV : null,
-    deposit: isFinite(depV) ? depV : null,
+    deposit: isFinite(depV) ? depV : null,   // appointments have no deposit -> null
     addons: addons,
-    preferredTime: String(pref || ''),
-    status: String(status || '')
+    preferredTime: String(cust.preferred_time || ''),
+    notes: String(cust.notes || ''),
+    status: String(tcField('status') || '')
   };
 }
 window.tcNormalizeOrder = tcNormalizeOrder;
 
-function _tcOrderCaptured(data) {
+function _tcOrderCaptured(data, eventName) {
   var order = tcNormalizeOrder(data);
   if (!order) return;
-  if (_tcState.captured && _tcState.captured.orderNumber === order.orderNumber) return; // already captured this order
+  if (eventName && /Appointment/i.test(eventName)) order.kind = 'appointment';
+  else if (eventName && /Order/i.test(eventName)) order.kind = 'order';
+  if (_tcState.captured && _tcState.captured.orderNumber && _tcState.captured.orderNumber === order.orderNumber) return;
   _tcState.captured = order;
   _tcState.sessionCaptured = true;
   try {
@@ -2459,7 +2467,7 @@ function _tcOrderCaptured(data) {
   } catch (ex) {
     console.warn('tcBridge: addTireOrderEntry failed, order captured but not basketed —', ex);
   }
-  closeTirePanel(); // ALWAYS close: the order is placed and paid; never strand the customer in the panel
+  closeTirePanel();
 }
 
 var _TC_APPT_EVENTS = { onAppointmentClick: 1, onAppointment_DateClicked: 1, onOrder_DateClicked: 1 };
@@ -2481,10 +2489,17 @@ function _tcRegister(widget) {
           if (CONFIG.tireShop.debug && typeof console !== 'undefined' && console.log) {
             console.log('[tcBridge]', name, seen ? ('order ' + seen.orderNumber) : '(no order in payload)');
           }
-          if (seen) { _tcState.lastOrder = seen; _tcState.sessionSelect = seen; }
-          else if (name === 'onTireSelect' && d) { _tcState.lastSelect = d; _tcState.sessionSelect = d; }
+          if (seen) {
+            // The event name is the authority on order vs appointment.
+            if (/Appointment/i.test(name)) seen.kind = 'appointment';
+            else if (/Order/i.test(name)) seen.kind = 'order';
+            // Only the order/appointment flow updates the durable last-seen order
+            // (onTireSelect/search fire while merely browsing and carry stock, not order qty).
+            if (/^on(Order|Appointment)/i.test(name)) { _tcState.lastOrder = seen; _tcState.sessionSelect = seen; }
+          }
+          if (name === 'onTireSelect' && d) { _tcState.lastSelect = d; if (!_tcState.sessionSelect) _tcState.sessionSelect = d; }
           if (CONFIG.tireShop.captureEvents.indexOf(name) !== -1) {
-            _tcOrderCaptured(d);
+            _tcOrderCaptured(d, name);
           }
           if (event && _TC_APPT_EVENTS[name] && CONFIG.tireShop.suppressAppointment) {
             if (event.reject) event.reject();
@@ -2553,16 +2568,17 @@ window._cpsTcAskYes = function() {
   var num = input ? String(input.value || '').trim() : '';
   S.tcAsk = false;
   var known = _tcState.lastOrder;
-  var useKnown = !!(known && known.orderNumber && (!num || num === known.orderNumber));
-  var targetNum = useKnown ? known.orderNumber : num;
+  var targetNum = (known && known.orderNumber) ? known.orderNumber : num;
   var dup = !!(targetNum && S.basket.some(function(e) {
     return e.kind === 'tireOrder' && e.tcOrder && e.tcOrder.orderNumber === targetNum;
   }));
   if (!dup) {
-    if (useKnown) {
-      addTireOrderEntry(known); // the full rich order
+    if (known && (known.orderNumber || (known.items && known.items.length))) {
+      // attach the full captured selection; graft a typed number if we have none
+      var toAttach = (num && !known.orderNumber) ? Object.assign({}, known, { orderNumber: num }) : known;
+      addTireOrderEntry(toAttach);
     } else if (num) {
-      addTireOrderEntry({ orderNumber: num, items: [], total: null, deposit: null, addons: [], preferredTime: '' });
+      addTireOrderEntry({ orderNumber: num, items: [], total: null, deposit: null, addons: [], preferredTime: '', notes: '', kind: 'order' });
     }
   }
   render();
