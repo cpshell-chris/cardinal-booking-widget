@@ -3717,20 +3717,27 @@ window.isValidAvailabilityResult = isValidAvailabilityResult;
   availability is not an AI feature — POSTs to the live relay's
   action:'availability' (CardinalBooking.gs, v2 Task 16) using the same
   Apps Script CORS-simple pattern as intakeProvider (Content-Type:
-  text/plain, no custom headers -> no preflight). ANY failure — fetch
-  rejection, non-ok status, bad JSON, an {error:...} response, or a shape
-  that fails isValidAvailabilityResult — falls back to
-  mockAvailability(params) silently (console.warn only; this must never
-  throw or surface an error to the customer, matching the calm-retry state
-  renderTime/drawSlots already handle for a provider rejection).
+  text/plain, no custom headers -> no preflight).
 
-  ONE exception (review finding, adjudicated): {error:'busy'} means the relay
-  is up but rate-limited — the mock would show capacity the relay just
-  declined to confirm, so busy REJECTS (re-throws) instead of falling back;
-  drawSlots' existing .catch() then renders its calm "couldn't load / Try
-  again" state. The silent mock fallback remains for every OTHER failure
-  (unconfigured/upstream/malformed shape/non-ok/network throw), where the
-  relay is absent or broken rather than explicitly asking the client to wait.
+  FAILURE RULE (owner-adjudicated 2026-07-20, off the Codex review — this
+  REPLACES the old silent mock fallback): once a backend is configured, ANY
+  failure — fetch rejection, non-ok status, bad JSON, an {error:...}
+  response, or a shape that fails isValidAvailabilityResult — REJECTS
+  (console.warn only, never surfaced raw). drawSlots' existing .catch()
+  renders the calm "couldn't load / Try again" state for both grid shapes
+  ('wait' -> #cps-slots, day-only -> the #cps-day-notice line).
+
+  Why the change: this used to fall back to mockAvailability() for every
+  failure except {error:'busy'} — that was right pre-launch, when a broken
+  screen was the worse outcome. With prod writing real bookings, invented
+  capacity is the worse outcome: it walks a real customer through the whole
+  funnel (OTP text included) onto a time the scheduler never confirmed, and
+  only dead-ends at the final create (which correctly never fakes success).
+  Retry-and-recover beats smooth-and-fictional. The trade accepted with it:
+  a brief relay blip is now visible to the customer instead of hidden.
+
+  The mock survives for exactly ONE case — no backendUrl at all (demo/local
+  test path, below). Configured-but-failing NEVER shows mock capacity.
 */
 function availabilityProvider(params) {
   if (!CONFIG.backendUrl) {
@@ -3763,12 +3770,16 @@ function availabilityProvider(params) {
       return data;
     })
     .catch(function(err) {
+      /* Both branches reject — kept separate only so the warn line names the
+         cause. busy (relay up, rate-limited) reads differently in a console
+         than a dead/garbled relay, and that distinction is the only breadcrumb
+         we get when a customer reports "it wouldn't load times". */
       if (err && err.cpsBusy) {
         console.warn('availabilityProvider: relay busy — surfacing the calm retry state (no mock fallback)');
-        throw err; // rejects through to drawSlots' .catch -> "couldn't load / Try again"
+      } else {
+        console.warn('availabilityProvider: live availability failed — surfacing the calm retry state (no mock fallback) —', err);
       }
-      console.warn('availabilityProvider: falling back to mockAvailability —', err);
-      return mockAvailability(params);
+      throw err; // rejects through to drawSlots' .catch -> "couldn't load / Try again"
     });
 }
 window.availabilityProvider = availabilityProvider;
