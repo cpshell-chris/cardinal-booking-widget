@@ -91,7 +91,7 @@ const CONFIG = {
      Broadened (spec §5b): the notice is no longer replacement-only. Any
      tire mention — the typed concern, a Q&A answer, or a tire-named service
      in the basket — surfaces it too (see tireMentionActive(), the superset
-     trigger). Copy is CONFIG-driven (tireNoticeCopy / tireNoticeLinkLabel),
+     trigger). Copy is CONFIG-driven (tireNoticeCopy / tireCtaLabel),
      not hardcoded in the render function. */
   tirePricingUrl:       "https://www.cardinalplazashell.com/tire-services#!tires/search?bp=tire&location_id=6647&search_by=size&type=passenger&season=2",
   tireReplacementServiceName: "Tire Replacement",
@@ -114,7 +114,6 @@ const CONFIG = {
     expectationCopy:     "Prices and ordering are handled by our tire center. You will pick your appointment time with us right after your order.",
     backLabel:           "Back to booking",
     removeHint:          "Your tire order stays active; call us to change it.",
-    offerCopy:           "Want to pick out your tires and lock in your order now?",
     closeAskCopy:        "Did you order tires or request an appointment through the tire center?",
     suppressAppointment: false,   // spike 2026-07-17: reject()-ing TC's date step BLOCKS ordering (TC requires an install time). Never suppress.
     autoServiceKeys:     ["price_car_mounting", "disposal_fee", "valve_stem"], // TC service keys that are automatic (mount/balance, disposal, VA tire tax) — EXCLUDED from the advisor note; everything else of type "Service" is a customer-chosen add-on that IS listed.
@@ -125,7 +124,7 @@ const CONFIG = {
     initTimeoutMs:       15000,
   },
   tireNoticeCopy:       "Curious about tire prices?",
-  tireNoticeLinkLabel:  "Browse and order tires on our tire center page.",
+  tireCtaLabel:         "Browse tires and see prices",
   hours:                {},            // populated from settings at runtime
   capacity:             {},            // populated from settings at runtime
   minNotice:            { value: 1, unit: "hour" },
@@ -2237,25 +2236,28 @@ function tireMentionActive() {
 window.tireMentionActive = tireMentionActive;
 
 /*
-  tireNoticeHtml() -> markup for #cps-tire-notice, or '' when the round shows
-  no tire signal at all (see tireMentionActive() for the full trigger set).
-  A calm inline pointer to the site's tire shop page: opens in a NEW TAB
-  (target="_blank" rel="noopener"), never navigates the widget away, never
-  blocks or gates the booking. Copy is CONFIG-driven (tireNoticeCopy /
-  tireNoticeLinkLabel) — price-free ("prices" names the page's purpose,
-  quotes nothing).
+  tireCtaHtml() -> markup for #cps-tire-cta-wrap, or '' when the round shows
+  no tire signal at all (see tireMentionActive() for the full trigger set)
+  OR a tire order is already captured this visit (kind === 'tireOrder' in
+  the basket — never re-prompt a customer who has ordered to browse prices).
+  The obvious path to tire pricing (owner request 2026-07-23): a lead-in
+  line plus the signature yellow CTA, rendered IN the chat card right under
+  the Q&A. tireShop.enabled opens the in-widget TireConnect panel (never
+  navigates away); disabled falls back to the outbound tire page in a NEW
+  TAB (target="_blank" rel="noopener"), styled as the same button. Copy is
+  CONFIG-driven (tireNoticeCopy / tireCtaLabel) — price-free ("prices"
+  names the tool's purpose, quotes nothing). Never blocks or gates booking.
 */
-function tireNoticeHtml() {
+function tireCtaHtml() {
   if (!tireMentionActive()) return '';
-  /* Task 5: mode-aware opener. tireShop.enabled routes the soft link to the
-     in-widget TireConnect panel (never navigates away); disabled mode is
-     byte-identical to the pre-Task-5 outbound link (new tab, tirePricingUrl). */
-  var opener = (CONFIG.tireShop && CONFIG.tireShop.enabled)
-    ? '<a href="#" onclick="event.preventDefault();window.openTirePanel()">' + esc(CONFIG.tireNoticeLinkLabel) + '</a>'
-    : '<a href="' + esc(CONFIG.tirePricingUrl) + '" target="_blank" rel="noopener">' + esc(CONFIG.tireNoticeLinkLabel) + '</a>';
-  return '<p id="cps-tire-notice" class="cps-hint" role="note" style="margin-top:10px">' +
-    esc(CONFIG.tireNoticeCopy) + ' ' + opener +
-    '</p>';
+  if (S.basket.some(function(e) { return e.kind === 'tireOrder'; })) return '';
+  var btnStyle = 'display:block;width:100%;margin-top:8px;text-align:center;box-sizing:border-box;text-decoration:none';
+  var btn = (CONFIG.tireShop && CONFIG.tireShop.enabled)
+    ? '<button type="button" id="cps-tire-cta" class="cps-btn cps-btn-primary" style="' + btnStyle + '" onclick="window.openTirePanel()">' + esc(CONFIG.tireCtaLabel) + '</button>'
+    : '<a id="cps-tire-cta" class="cps-btn cps-btn-primary" style="' + btnStyle + '" href="' + esc(CONFIG.tirePricingUrl) + '" target="_blank" rel="noopener">' + esc(CONFIG.tireCtaLabel) + '</a>';
+  return '<div id="cps-tire-cta-wrap" role="note" style="margin-top:12px">' +
+    '<p class="cps-hint" style="margin:0 0 2px">' + esc(CONFIG.tireNoticeCopy) + '</p>' + btn +
+    '</div>';
 }
 
 /* ============================================================================
@@ -2823,8 +2825,8 @@ function renderHelp(body, foot, h2) {
      block with an empty-state line: no empty labeled box to read as a stray
      heading; the customer sees the section appear the moment they add
      something). The #cps-basket node always renders so in-place DOM lookups
-     stay stable; the "Add another" affordance and the tire notice attach
-     around it exactly as before. --- */
+     stay stable; the "Add another" affordance attaches around it exactly as
+     before (the tire CTA now lives in the concern card, not here). --- */
   /* 1b: the basket renders as the "YOUR VISIT SO FAR" emphasis section card
      (yellow border) — one row per entry, label left, an underlined Remove
      text link right. Renders only when non-empty; the #cps-basket node
@@ -2916,25 +2918,6 @@ function renderHelp(body, foot, h2) {
     ? `<p id="cps-intake-notice" class="cps-hint" role="status" style="margin-top:8px">${esc(S.intake.notice)}</p>`
     : '';
 
-  /* TireConnect AI-offer (spec 2026-07-17, Task 5): once a finalized round
-     has landed the tire-replacement service in the basket, offer the
-     in-widget panel right there — gone again once an order is captured
-     (kind === 'tireOrder' in the basket) so it never re-offers a completed
-     order. Both the intro copy and the clickable label live in the SAME
-     #cps-tc-offer anchor (the whole line is the opener). Absent entirely
-     when tireShop is disabled. */
-  var tcOfferHtml = '';
-  if (CONFIG.tireShop && CONFIG.tireShop.enabled &&
-      !S.basket.some(function(e) { return e.kind === 'tireOrder'; })) {
-    var _wantedTire = String(CONFIG.tireReplacementServiceName || '').toLowerCase();
-    var _tireSvc = CONFIG.services.find(function(s) { return String(s.name).toLowerCase() === _wantedTire; });
-    if (_tireSvc && S.services.indexOf(_tireSvc.id) !== -1) {
-      tcOfferHtml = '<p class="cps-hint" style="margin-top:10px">' +
-        '<a href="#" id="cps-tc-offer" onclick="event.preventDefault();window.openTirePanel()">' +
-        esc(CONFIG.tireShop.offerCopy) + ' ' + esc(CONFIG.tireShop.tileLabel) + '</a></p>';
-    }
-  }
-
   /* Close-ask degrade (spec 2026-07-17, Task 6): armed by _tcOnPanelClose when
      the customer selected a tire this visit but no order was captured. "Yes"
      lands a thin tireOrder entry by order number (addTireOrderEntry degrades
@@ -2963,10 +2946,10 @@ function renderHelp(body, foot, h2) {
      1. heading + subcopy
      2. Popular services tiles (MOVED UP, right under the heading)
      3. concern textarea (relabeled "Tell us what is going on") + Add
-     4. AI helper: gather summary + follow-up question + pending + notice,
-        DIRECTLY below the concern box (the intake Q&A lives with the box
-        that feeds it)
-     5. Purpose of visit: the basket block + Add-another + tire notice
+     4. AI helper: gather summary + follow-up question + pending + notice +
+        the tire-pricing CTA, DIRECTLY below the concern box (the intake Q&A
+        and its tire CTA live with the box that feeds them)
+     5. Purpose of visit: the basket block + Add-another
      This is a LAYOUT reorder only — every handler, gate, and state check is
      unchanged from the prior order. */
   /* Body layout (1b sectioned): heading + subcopy, then three section cards —
@@ -2995,10 +2978,9 @@ function renderHelp(body, foot, h2) {
       ${noticeHtml}
       ${followUpHtml}
       ${pendingHtml}
+      ${tireCtaHtml()}
     </div>
     ${basketHtml}
-    ${tireNoticeHtml()}
-    ${tcOfferHtml}
     ${inspectionOnlyHtml()}`;
 
   /* Inspection-only basket: nothing bookable exists (see
