@@ -5017,14 +5017,14 @@ const MOCK_CLEARWAY_DUE = {
        $390, Differential 220.00 -> $230. The ARRAY ORDER also mirrors the
        relay's file-driven ordering (due-prices.txt line order), since the mock
        path returns this canned list without stamping or sorting. */
-    { service_name: 'Coolant Service', state: 'due-at-next', canned_job_id: null,
-      linked_canned_jobs: [{ id: 99001, name: 'BG Cooling System Service' }],
-      reason: 'Approaching the 60,000-mile service interval.',
-      price: 'Starting at approximately $290', priceShort: '$290' },
     { service_name: 'Fuel Induction Service', state: 'due-at-mileage', canned_job_id: null,
       linked_canned_jobs: [{ id: 338979809, name: 'BG Platinum Fuel / Air Induction Service' }],
       reason: 'Due at your mileage.',
       price: 'Starting at approximately $390', priceShort: '$390' },
+    { service_name: 'Coolant Service', state: 'due-at-next', canned_job_id: null,
+      linked_canned_jobs: [{ id: 99001, name: 'BG Cooling System Service' }],
+      reason: 'Approaching the 60,000-mile service interval.',
+      price: 'Starting at approximately $290', priceShort: '$290' },
     { service_name: 'Differential Fluid Service', state: 'due-at-mileage', canned_job_id: null,
       linked_canned_jobs: [{ id: 338979806, name: 'BG Rear Differential Service' }],
       reason: 'Due at your mileage.',
