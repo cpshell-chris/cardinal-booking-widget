@@ -295,6 +295,12 @@ const CONFIG = {
     showFee: false,
     fees: {},
     link: "https://www.cardinalplazashell.com/virginia-safety-inspection",
+    /* eligibleHandling — the visit types an inspection can ride, on a weekday
+       (owner 2026-07-24). White Glove qualifies: we collect the vehicle and it
+       is with us for the day exactly like a drop-off, so an inspection can be
+       performed. A 'wait' visit never qualifies (the customer is waiting on the
+       car). Config-driven so the rule is never a hardcoded string in logic. */
+    eligibleHandling: ["dropoff", "whiteglove"],
     /* Walk-in hours copy — single source (never hardcode in markup). Calm,
        no urgency, price-free. Used by both the ineligible-notice's implicit
        weekday-dropoff framing and the Help-step terminal panel. */
@@ -616,7 +622,11 @@ function recomputeInspection() {
   }
   var explicit = S.inspection.types.safety || S.inspection.types.emissions;
   var intent = explicit || S.basket.some(function(e) { return !!e.inspectionIntent; });
-  var eligible = S.sched.handling === 'dropoff' && !!S.sched.date && dowOfYmd(S.sched.date) <= 5;
+  /* Weekday + a visit type that leaves the car with us (CONFIG.inspection
+     .eligibleHandling: drop-off OR White Glove — owner 2026-07-24). A 'wait'
+     visit is never eligible. */
+  var eligible = (CONFIG.inspection.eligibleHandling || ['dropoff']).indexOf(S.sched.handling) !== -1
+    && !!S.sched.date && dowOfYmd(S.sched.date) <= 5;
 
   S.inspection.intent = intent;
   S.inspection.eligible = eligible;
@@ -664,7 +674,7 @@ function inspectionNoticeHtml() {
     '<div id="cps-insp-notice" role="status" class="cps-field" ' +
       'style="margin-top:12px;padding:14px;background:var(--cps-surface);border-radius:var(--cps-radius-ctl);border:1.5px solid var(--cps-line)">' +
       '<p style="margin:0 0 8px;font-size:14.5px;color:var(--cps-ink)">' +
-        esc("Heads up: we can't add your inspection to this visit. Inspections are weekday drop-offs (or walk-in).") + ' ' +
+        esc("Heads up: we can't add your inspection to this visit. Inspections ride a weekday drop-off or White Glove visit (or walk in).") + ' ' +
         '<a href="' + esc(CONFIG.inspection.link) + '" target="_blank" rel="noopener">Learn more</a>' +
       '</p>' +
       '<button type="button" class="cps-btn cps-btn-ghost" onclick="window._cpsInspSwitch()">Switch to a weekday drop-off</button>' +
@@ -2834,7 +2844,7 @@ function renderHelp(body, foot, h2) {
          they never read as a bookable pick.
        - NON-EMPTY basket: the tiles become real, INDEPENDENT toggles
          (_cpsInspectionSelect) that add each inspection to the visit as a
-         weekday drop-off add-on (Safety and Emissions selected separately).
+         weekday add-on, drop-off or White Glove (Safety and Emissions selected separately).
          Eligibility (weekday + drop-off) is finalized on the Time step; if
          the customer later picks a Saturday or a wait appointment,
          inspectionNoticeHtml() explains and offers a one-tap switch. */
@@ -2860,7 +2870,7 @@ function renderHelp(body, foot, h2) {
     if (S.inspection.types.safety || S.inspection.types.emissions) {
       inspNoticeHtml =
         '<p class="cps-hint" id="cps-insp-hint" role="status" style="margin:8px 0 0">' +
-          esc("Added as a weekday drop-off add-on — not available Saturdays. You'll pick your time next.") +
+          esc("Added as a weekday add-on (drop-off or White Glove) - not available Saturdays. You'll pick your time next.") +
         '</p>';
     }
   } else if (S.inspectionInfo) {
@@ -3322,7 +3332,7 @@ function renderHelp(body, foot, h2) {
     var picked = (CONFIG.inspection.standalone || []).filter(function(t) { return t.key === key; })[0];
     if (picked) {
       announce((S.inspection.types[key] ? 'Added ' : 'Removed ') + picked.label +
-        (S.inspection.types[key] ? ' as a weekday drop-off add-on.' : '.'));
+        (S.inspection.types[key] ? ' as a weekday add-on (drop-off or White Glove).' : '.'));
     }
     render();
   };
@@ -7275,15 +7285,20 @@ window.basketEntryLine = basketEntryLine;
     3. one line per selected inspection (selectedInspectionLabels() — e.g.
        'Virginia Safety Inspection' / 'Virginia Emissions Inspection', or the
        combined AI-fallback line), iff S.inspection.added.
-    4. "Previously declined:" + one line per selected declined rec
-       (<name> + ' ' + fmtCents(declinedPriceCents(...)) iff a price is
-       known — declinedPriceCents returns the customer's real quoted exact
-       cents, never rounded), THEN "Due at mileage:" + one line per selected
-       due rec (<name> + ' ' + the rec's priceShort iff known — the bare
-       "$260" form, never the long customer-facing price phrasing). Either
-       header is omitted entirely when that section has no selected items;
-       a blank line separates the two sections when both are present. A rec
-       with no known price still gets its bare-name line — never invented.
+    4. "Due at mileage:" + one line per selected ADVISORY due rec (<name> +
+       ' ' + the rec's priceShort iff known — the bare "$260" form, never the
+       long customer-facing phrasing). Header omitted entirely when nothing
+       advisory is selected. A rec with no known price still gets its
+       bare-name line — never invented.
+       NOTHING ELSE is listed here, because Tekmetric renders the other two
+       kinds itself and repeating them duplicated them on the appointment
+       (owner screenshot 2026-07-24):
+         - selected DECLINED jobs ride payload.recommendedServices, which
+           Tekmetric renders as its own "Previously declined>NAME" line (and
+           which drives recommendedServicesSkipped, so it must keep being
+           sent);
+         - selected BOOKABLE due recs ('svc:' key) ride payload.services and
+           render as Tekmetric service chips.
   Lines are joined with '\n'.
 
   RETIRED (v2 Task 19): the FIX D interim courtesy row. It was explicitly the
