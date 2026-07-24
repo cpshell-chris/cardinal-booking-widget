@@ -7316,29 +7316,30 @@ function buildConcerns() {
   });
   if (S.inspection.added) selectedInspectionLabels().forEach(function(l) { lines.push(l); });
 
-  /* Previously declined / Due at mileage (spec 2026-07-24): declined work
-     leads, mileage-based work follows, each service appears exactly once.
-     Telegraphic, facts only. Never invents a price — a rec with no known
-     price still gets a bare-name line. */
-  var declinedLines = [];
+  /* Due at mileage (owner feedback 2026-07-24): list ONLY what Tekmetric does
+     not already render for itself, so nothing appears twice on the appointment.
+     Tekmetric renders two payload fields natively:
+       - recommendedServices (the selected DECLINED jobIds) -> its own
+         "Previously declined>NAME" line. It also drives
+         recommendedServicesSkipped, so the field must keep being sent —
+         therefore declined work is NOT repeated here.
+       - services (BOOKABLE ids, from a 'svc:' rec key) -> a service chip.
+         So a bookable due rec is not repeated here either.
+     That leaves the ADVISORY ('adv:') due work, which has no other way to
+     reach the shop: listed once, with its price when known. Never invents a
+     price — an unpriced item still gets its bare-name line. */
   var dueLines = [];
   S.recs.selected.forEach(function(sel) {
-    if (sel.source === 'declined') {
-      var d = S.recs.declined.find(function(x) { return x.jobId === sel.id; });
-      var pc = d ? declinedPriceCents(d) : null;
-      declinedLines.push(sel.name + (pc != null ? ' ' + fmtCents(pc) : ''));
-    } else {
-      var r = S.recs.recommended.find(function(x) { return x.key === sel.key; });
-      dueLines.push(sel.name + (r && r.priceShort ? ' ' + r.priceShort : ''));
-    }
+    if (sel.source !== 'recommended') return;                 // declined: Tekmetric renders it
+    if (String(sel.key || '').indexOf('svc:') === 0) return;  // bookable: rides services[] as a chip
+    var r = S.recs.recommended.find(function(x) { return x.key === sel.key; });
+    dueLines.push(sel.name + (r && r.priceShort ? ' ' + r.priceShort : ''));
   });
-  var sections = [];
-  if (declinedLines.length) sections.push(['Previously declined:'].concat(declinedLines));
-  if (dueLines.length) sections.push(['Due at mileage:'].concat(dueLines));
-  sections.forEach(function(sec, i) {
-    if (i > 0) lines.push('');
-    sec.forEach(function(l) { lines.push(l); });
-  });
+  if (dueLines.length) {
+    if (lines.length) lines.push('');
+    lines.push('Due at mileage:');
+    dueLines.forEach(function(l) { lines.push(l); });
+  }
 
   return lines.join('\n');
 }
