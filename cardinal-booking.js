@@ -9,7 +9,7 @@
   if (document.getElementById('cps-booking-style')) return;
   var st = document.createElement('style');
   st.id = 'cps-booking-style';
-  st.textContent = "/* ---- Brand tokens — exact values from cardinalplazashell.com (Duda theme) ---- */\n  :root {\n    --cps-yellow:  #FFD305;   /* Shell yellow — primary CTA fill + border */\n    --cps-red:     #DB1D20;   /* Brand red — accent / focus */\n    --cps-ink:     #060606;   /* Primary text (near-black) */\n    --cps-gray:    #727272;   /* Muted text + headings */\n    /* --cps-gray-strong — derived contrast-safe variant of --cps-gray for\n       SMALL (<=16px) muted text only (v2 Task 13 finding 4). #727272 on\n       --cps-bg (#EEEEEE) computes to 4.15:1 — passes the 3:1 large-text\n       threshold (so headings/.cps-h3 keep --cps-gray unchanged, per design\n       contract) but fails the 4.5:1 AA threshold for normal/small text.\n       #666666 on #EEEEEE clears 4.5:1. Never used for headings. */\n    --cps-gray-strong: #666666;\n    --cps-bg:      #EEEEEE;   /* Page / modal background */\n    --cps-surface: #FFFFFF;   /* Cards / panels (also #F7F7F7 for secondary) */\n\n    --cps-line:    #E4E7EB;   /* Hairline borders */\n    --cps-ok:      #1B8A5A;   /* Success green */\n    --cps-shadow:  0 18px 50px rgba(16, 20, 28, 0.28);\n    --cps-radius:  14px;      /* Modal shell corner */\n    --cps-radius-ctl: 8px;    /* Buttons / inputs / chips */\n    --cps-font:    \"Inter\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif;\n  }\n\n  /* ---- Minimal local-test launcher (not deployed to Duda) ---- */\n  .cps-local-launcher {\n    font-family: var(--cps-font);\n    background: var(--cps-bg);\n    min-height: 100vh;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    margin: 0;\n  }\n\n  /* ---- Modal overlay ---- */\n  .cps-overlay {\n    position: fixed;\n    inset: 0;\n    background: rgba(10, 12, 16, 0.62);\n    backdrop-filter: blur(3px);\n    display: none;\n    align-items: flex-start;\n    justify-content: center;\n    z-index: 99999;\n    padding: 28px 16px;\n    overflow-y: auto;\n  }\n  .cps-overlay.cps-open { display: flex; }\n\n  /* Address autocomplete — PlaceAutocompleteElement (Places API New).\n     The legacy Autocomplete dropdown was a body-appended pac-container that\n     needed a z-index bump above the 99999 overlay; the new element renders\n     its suggestion list inside its OWN shadow DOM, positioned within the\n     element and therefore inside the modal's stacking context — no page CSS\n     is needed for the dropdown, so that stale rule is deleted. Styling goes\n     through the element's documented hooks: standard host properties plus\n     ::part() (input, prediction-list, ...). Matched to the widget's control\n     look (.cps-textarea): 44px height, control radius, Inter, brand line\n     border. NOT matchable (component-internal): the focus ring geometry,\n     the built-in search icon/clear button, and the exact 1.5px inner input\n     border (the host carries the widget border instead). */\n  .cps-addr-ac {\n    display: block;\n    width: 100%;\n    box-sizing: border-box;\n    font-family: var(--cps-font);\n    color-scheme: light;\n    background-color: var(--cps-surface);\n    border: 1.5px solid var(--cps-line);\n    border-radius: var(--cps-radius-ctl);\n  }\n  .cps-addr-ac::part(input) {\n    min-height: 44px;\n    padding: 11px 12px;\n    font-family: var(--cps-font);\n    font-size: 15px;\n    color: var(--cps-ink);\n    border-radius: var(--cps-radius-ctl);\n  }\n  .cps-addr-ac::part(prediction-list) {\n    font-family: var(--cps-font);\n    font-size: 15px;\n    color: var(--cps-ink);\n    border-radius: var(--cps-radius-ctl);\n  }\n\n  /* ---- Modal shell ---- */\n  .cps-modal {\n    font-family: var(--cps-font);\n    background: var(--cps-bg);\n    width: 100%;\n    max-width: 560px;\n    border-radius: var(--cps-radius);\n    border-top: 4px solid var(--cps-yellow);\n    box-shadow: var(--cps-shadow);\n    overflow: hidden;\n    position: relative;\n    animation: cps-pop 0.22s cubic-bezier(0.2, 0.8, 0.25, 1);\n  }\n  @keyframes cps-pop {\n    from { opacity: 0; transform: translateY(14px) scale(0.985); }\n    to   { opacity: 1; transform: none; }\n  }\n\n  /* TireConnect panel layer (spec 2026-07-17): covers the modal's body+foot\n     area and scrolls itself — TC results run 3000px+ (2026-07-06 sizing\n     lesson). Positioned against .cps-modal, which is position:relative\n     above. */\n  .cps-tc-layer {\n    position: absolute; inset: 0; background: var(--cps-surface, #FFFFFF);\n    z-index: 5; display: flex; flex-direction: column; overflow-y: auto; overflow-x: hidden;\n  }\n  /* [hidden] must actually hide (found 2026-08-05, latent since 2026-07-17):\n     the display:flex above OVERRIDES the hidden attribute's non-important UA\n     rule, so the closed panel stayed visible over page 1 on any host page\n     without its own [hidden] reset. Live Duda pages happen to ship one —\n     the widget must not depend on the host's stylesheet for this. */\n  .cps-tc-layer[hidden] { display: none; }\n  .cps-tc-layer .cps-tc-head {\n    background: var(--cps-surface);\n    color: var(--cps-ink);\n    padding: 16px 22px 13px;\n    position: relative;\n    border-bottom: 1px solid var(--cps-line);\n  }\n  .cps-tc-layer .cps-tc-head .cps-logo { height: 34px; width: auto; display: block; margin: 0 0 7px; }\n  .cps-tc-layer .cps-tc-head .cps-shop { font-size: 15px; font-weight: 400; color: var(--cps-ink); letter-spacing: 0.01em; margin: 0 0 4px; }\n  .cps-tc-layer .cps-tc-head h2 { margin: 0; font-size: 14.5px; font-weight: 400; color: var(--cps-gray); }\n  .cps-tc-back {\n    position: absolute; top: 14px; right: 14px;\n    border: 0; background: #EFEFEF; color: #5b5b5b;\n    border-radius: 16px; padding: 6px 13px; cursor: pointer;\n    font-family: var(--cps-font); font-size: 13px; line-height: 1;\n  }\n  .cps-tc-layer #cps-tc-embed { flex: 1 1 auto; min-height: 300px; max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }\n\n  /* ---- Modal header ---- */\n  .cps-head {\n    background: var(--cps-surface);\n    color: var(--cps-ink);\n    padding: 16px 22px 13px;\n    position: relative;\n    border-bottom: 1px solid var(--cps-line);\n  }\n  .cps-head .cps-logo {\n    height: 34px;\n    width: auto;\n    display: block;\n    margin: 0 0 7px;\n  }\n  /* Preview feedback round 7 (item 1, the owner): the site itself renders\n     Inter at REGULAR weights, so the widget does too — every font-weight in\n     this stylesheet is 400 except .cps-btn-primary (500, the one deliberate\n     exception: 15px ink on the saturated yellow fill reads washed-out at\n     400; 500 is the lightest weight that anchors the CTA without reading\n     as bold against the site style). */\n  .cps-head .cps-shop {\n    font-size: 15px;\n    font-weight: 400;\n    color: var(--cps-ink);\n    letter-spacing: 0.01em;\n    margin: 0 0 4px;\n  }\n  .cps-head h2 {\n    margin: 0;\n    font-size: 14.5px;\n    font-weight: 400;\n    color: var(--cps-gray);\n  }\n  #cps-h2:focus { outline: none; } /* programmatic focus target only (tabindex=-1) — suppress the default ring; not keyboard-interactive */\n  .cps-x {\n    position: absolute;\n    top: 14px;\n    right: 14px;\n    width: 32px;\n    height: 32px;\n    border-radius: 50%;\n    border: 0;\n    cursor: pointer;\n    background: #EFEFEF;\n    color: #5b5b5b;\n    font-size: 18px;\n    line-height: 1;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    font-family: var(--cps-font);\n  }\n  .cps-x:hover { background: #E2E2E2; color: var(--cps-ink); }\n  /* Tap-target floor (WCAG, >=44x44) — same expanded-hit-area pattern as\n     .cps-step-btn / #cps-wg-info: keep the visible 32px circle, expand only\n     the invisible hit area via an absolutely-positioned ::before (.cps-x is\n     already `position:absolute`, so it's already a positioning context —\n     no change needed there). .cps-x sits alone in the header corner (no\n     adjacent interactive control), so the wider invisible hit area can't\n     overlap another target. */\n  .cps-x::before {\n    content: \"\";\n    position: absolute;\n    top: 50%;\n    left: 50%;\n    width: 44px;\n    height: 44px;\n    transform: translate(-50%, -50%);\n  }\n\n  /* ---- Step progress dots ---- */\n  /* 1b redesign: #cps-steps is now a block containing the bar row\n     (.cps-steps-bars) plus the caption line below it, so the flex row moves\n     to the inner wrapper. */\n  .cps-steps {\n    display: block;\n    padding: 14px 22px 0;\n  }\n  .cps-steps-bars {\n    display: flex;\n    gap: 6px;\n  }\n  /* Stepper caption (1b): names the current step and previews the next one —\n     \"STEP 2 OF 6 · TIME · NEXT: VERIFY YOUR NUMBER\". Plain '·' separators. */\n  .cps-step-caption {\n    margin: 8px 0 0;\n    font-size: 11px;\n    color: var(--cps-gray-strong);\n    letter-spacing: 0.06em;\n    text-transform: uppercase;\n  }\n\n  /* ---- Step progress dots as buttons (v2 Task 10 — clickable stepper) ----\n     The visible bar stays a thin 5px strip (unchanged look — see Task 12's\n     \"no visual redesign\" constraint); tap-target compliance (>=44x44, per\n     spec §10) is met with an invisible ::before that expands the hit area\n     without inflating the strip itself. */\n  .cps-step-btn {\n    appearance: none;\n    -webkit-appearance: none;\n    position: relative;\n    height: 5px;\n    flex: 1;\n    border: 0;\n    border-radius: 999px;\n    background: var(--cps-line);\n    transition: background 0.25s;\n    padding: 0;\n    margin: 0;\n    cursor: pointer;\n    font-family: var(--cps-font);\n  }\n  .cps-step-btn::before {\n    content: \"\";\n    position: absolute;\n    left: 0;\n    right: 0;\n    top: 50%;\n    transform: translateY(-50%);\n    min-height: 44px;\n  }\n  .cps-step-btn.cps-done   { background: #AB0000; cursor: pointer; }\n  .cps-step-btn.cps-active { background: var(--cps-red); cursor: default; }\n  .cps-step-btn:disabled   { cursor: default; }\n  .cps-step-btn.cps-done:hover { background: var(--cps-red); }\n  .cps-step-btn:disabled:not(.cps-active) { background: var(--cps-line); }\n\n  /* ---- Visually hidden (a11y live region + step-button labels) ---- */\n  .cps-sr-only {\n    position: absolute;\n    width: 1px;\n    height: 1px;\n    padding: 0;\n    margin: -1px;\n    overflow: hidden;\n    clip: rect(0, 0, 0, 0);\n    white-space: nowrap;\n    border: 0;\n  }\n\n  /* ---- Modal body + footer ---- */\n  .cps-body {\n    padding: 20px 22px 8px;\n    min-height: 230px;\n  }\n  .cps-foot {\n    display: flex;\n    gap: 10px;\n    align-items: center;\n    padding: 16px 22px 20px;\n  }\n\n  /* ---- Headings (gray, per design contract) ----\n     clamp() type scale (spec §10): desktop keeps today's exact sizes (the\n     clamp() max is each rule's pre-existing value, so >480px is visually\n     unchanged); the min is a readable floor for narrow phones, with the\n     viewport-relative middle term doing the fluid scaling in between. */\n  .cps-body h3 {\n    margin: 0 0 6px;\n    font-size: clamp(17px, 4.5vw, 20px);\n    font-weight: 400;\n    color: var(--cps-gray);\n    text-transform: uppercase;\n    letter-spacing: 0.03em;\n  }\n  .cps-steptitle {\n    font-size: clamp(19px, 5vw, 22px);\n    font-weight: 400;\n    margin: 0 0 4px;\n    color: var(--cps-gray);\n  }\n  .cps-stepsub {\n    font-size: clamp(12.5px, 3.4vw, 13.5px);\n    line-height: 1.5;\n    /* Small (<=16px) muted text — uses the AA-safe --cps-gray-strong, not\n       --cps-gray (v2 Task 13 finding 4; see :root for the contrast math). */\n    color: var(--cps-gray-strong);\n    margin: 0 0 18px;\n  }\n\n  /* ============================================================================\n     1b SECTIONED REDESIGN — shared components (design handoff\n     design_handoff_booking_widget_1b). Every content zone is a white SECTION\n     CARD with a small uppercase title; nothing floats directly on the gray\n     modal background.\n     ============================================================================ */\n  .cps-section {\n    background: var(--cps-surface);\n    border: 1.5px solid var(--cps-line);\n    border-radius: var(--cps-radius-ctl);\n    padding: 14px;\n    margin-bottom: 12px;\n  }\n  .cps-section-title {\n    margin: 0 0 10px;\n    font-size: 11px;\n    color: var(--cps-gray);\n    letter-spacing: 0.06em;\n    text-transform: uppercase;\n    font-weight: 400;\n  }\n  /* Emphasis variant — the \"Your visit so far\" basket card. */\n  .cps-section--em { border: 2px solid var(--cps-yellow); }\n\n  /* Full-width toggle tile (visit-type cards, ride, WG attestation, recs):\n     selection is conveyed by COLOR only (white -> yellow fill via .cps-sel);\n     tiles never resize on selection. Carries aria-pressed in the markup. */\n  .cps-tile {\n    display: block;\n    width: 100%;\n    text-align: left;\n    padding: 12px 14px;\n    font-size: 14px;\n    line-height: 1.45;\n  }\n  .cps-tile-title { display: block; font-size: 15px; }\n  .cps-tile-desc  { display: block; font-size: 12px; color: var(--cps-gray-strong); margin-top: 2px; line-height: 1.45; }\n  .cps-btn-ghost.cps-sel .cps-tile-desc,\n  .cps-btn-ghost.cps-sel .cps-tile-sub { color: #5b5b5b; }\n  .cps-tile-sub { display: block; font-size: 12px; color: var(--cps-gray-strong); margin-top: 2px; }\n  /* Disabled/unavailable tile: never a yellow border on something unclickable. */\n  .cps-btn-ghost.cps-tile:disabled,\n  .cps-btn-ghost.cps-tile:disabled:hover {\n    border-color: var(--cps-line);\n    color: #9a9a9a;\n    background: var(--cps-surface);\n    cursor: not-allowed;\n  }\n  .cps-btn-ghost.cps-tile:disabled .cps-tile-desc { color: #b0b0b0; }\n\n  /* ---- Seasonal promo card (CONFIG.promo — Back to School, August only):\n     a .cps-tile full-width toggle at the top of the Popular-services\n     section with the inclusions list always visible. Inclusion lines get a\n     red check accent (site red as accent, per the design contract), flipped\n     to ink on the yellow selected fill for contrast. ---- */\n  .cps-promo-tile { margin: 0 0 10px; }\n  .cps-promo-inc {\n    display: block;\n    font-size: 12.5px;\n    color: var(--cps-gray-strong);\n    margin-top: 2px;\n    line-height: 1.5;\n  }\n  .cps-promo-inc::before { content: \"\\2713\\00a0\\00a0\"; color: var(--cps-red); }\n  .cps-btn-ghost.cps-sel .cps-promo-inc { color: #5b5b5b; }\n  .cps-btn-ghost.cps-sel .cps-promo-inc::before { color: var(--cps-ink); }\n\n  /* Underlined text-link button (basket Remove, Resend code, Change number,\n     review-row Edit) — plain text affordances, not boxed buttons. */\n  .cps-linkbtn {\n    appearance: none;\n    background: none;\n    border: 0;\n    padding: 6px 2px;\n    font-family: var(--cps-font);\n    font-size: 13px;\n    color: var(--cps-gray);\n    text-decoration: underline;\n    cursor: pointer;\n  }\n  .cps-linkbtn:hover { color: var(--cps-ink); }\n\n  /* Error line (verify step) — red, 12px. */\n  .cps-err {\n    font-size: 12px;\n    color: var(--cps-red);\n    margin-top: 6px;\n  }\n\n  /* Calendar week (1b): MON-SUN letters row + 44px date squares, chevron\n     week nav in the section-title row. */\n  .cps-cal-head {\n    display: flex;\n    align-items: center;\n    justify-content: space-between;\n    margin: 0 0 10px;\n  }\n  .cps-cal-head .cps-section-title { margin: 0; }\n  .cps-cal-nav { display: flex; gap: 6px; }\n  .cps-wk-btn {\n    width: 32px;\n    height: 32px;\n    min-width: 32px;\n    min-height: 32px;\n    padding: 0;\n    border-radius: 50%;\n    font-size: 15px;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    position: relative;\n  }\n  /* Expanded invisible hit area (same pattern as .cps-x) so the visible\n     32px circle still meets the 44px tap-target floor. */\n  .cps-wk-btn::before {\n    content: \"\";\n    position: absolute;\n    top: 50%;\n    left: 50%;\n    width: 44px;\n    height: 44px;\n    transform: translate(-50%, -50%);\n  }\n  .cps-cal-dow {\n    font-size: 10px;\n    color: #9a9a9a;\n    text-align: center;\n    letter-spacing: 0.04em;\n  }\n\n  /* ---- Primary CTA button: yellow fill, 2px solid yellow border, 8px radius, ink text ---- */\n  /* hover inverts: white fill, yellow border, ink text */\n  .cps-btn {\n    appearance: none;\n    font-family: var(--cps-font);\n    cursor: pointer;\n    border-radius: var(--cps-radius-ctl);\n    font-size: 15px;\n    font-weight: 400;\n    padding: 12px 20px;\n    border: 2px solid transparent;\n    transition: transform 0.1s, background 0.12s, border-color 0.12s, color 0.12s;\n    /* Tap target floor (spec §10) — .cps-btn is the shared base for\n       .cps-btn-primary/.cps-btn-ghost, which in turn cover day buttons\n       (.cps-day-opt) and time-slot buttons (.cps-slot); one rule here\n       covers all of them without a visual redesign (padding already gets\n       most of the way there — this just guarantees the floor). */\n    min-height: 44px;\n    min-width: 44px;\n    box-sizing: border-box;\n  }\n  .cps-btn:active { transform: translateY(1px); }\n\n  /* PRIMARY button — matches the site theme's Primary style exactly:\n     yellow fill, 2px yellow border, black Inter text, centered, 17px, and\n     the site's signature HOVER INVERSION to a white fill (border + text\n     hold). Weight is REGULAR (400) to match the site's own button, which is\n     not bold (owner request); at 17px black on yellow stays legible. This\n     retires the last >400 weight — the whole widget is now Inter 400. */\n  .cps-btn-primary {\n    background: var(--cps-yellow);\n    color: var(--cps-ink);\n    border-color: var(--cps-yellow);\n    flex: 1;\n    font-size: 17px;\n    font-weight: 400;\n    text-align: center;\n  }\n  .cps-btn-primary:hover {\n    background: var(--cps-surface);\n    border-color: var(--cps-yellow);\n    color: var(--cps-ink);\n  }\n  .cps-btn-primary:disabled {\n    background: #F4E08C;\n    border-color: #F4E08C;\n    color: #8a8460;\n    cursor: not-allowed;\n  }\n\n  /* SECONDARY button (.cps-btn-ghost) — matches the site theme's Secondary\n     style: WHITE fill, 2px YELLOW border, black Inter text, and the hover\n     INVERSION to a yellow fill (border + text hold). This is the widget's\n     every-other-button style (Back, day tiles, time slots, handling options,\n     service tiles, add-another, week nav, Remove). Selected day/slot uses\n     .cps-sel (yellow fill) below. Disabled ghosts (unavailable/pending days,\n     capped week nav) drop to a MUTED gray outline so they never read as an\n     active yellow-bordered option. */\n  .cps-btn-ghost {\n    background: var(--cps-surface);\n    color: var(--cps-ink);\n    border-color: var(--cps-yellow);\n  }\n  .cps-btn-ghost:hover {\n    background: var(--cps-yellow);\n    border-color: var(--cps-yellow);\n    color: var(--cps-ink);\n  }\n  .cps-btn-ghost:disabled,\n  .cps-btn-ghost:disabled:hover {\n    background: var(--cps-surface);\n    border-color: var(--cps-line);\n    color: var(--cps-gray);\n    cursor: not-allowed;\n  }\n\n  /* ---- Skip link (Help + Recommended step footers) — was inline-styled\n     identically in both places (v2 Task 9 leftover); defined once here\n     (v2 Task 12 absorbed minor). Same visual as before, plus a proper\n     inline-flex + min-height so the tap target meets the 44px floor. ---- */\n  .cps-skip {\n    display: inline-flex;\n    align-items: center;\n    font-size: 13.5px;\n    color: var(--cps-gray);\n    text-decoration: underline;\n    padding: 8px 4px;\n    white-space: nowrap;\n    min-height: 44px;\n    box-sizing: border-box;\n  }\n\n  /* ---- Selected state (day/time picks): filled yellow, same as primary CTA, ---- */\n  /* so the chosen day/slot reads as \"active\" against the outlined ghost options. */\n  .cps-btn-ghost.cps-sel,\n  .cps-btn-ghost.cps-sel:hover {\n    background: var(--cps-yellow);\n    border-color: var(--cps-yellow);\n    color: var(--cps-ink);\n    font-weight: 400; /* round 7 (item 4): selection is conveyed by COLOR only — no weight change, so the tile never resizes */\n  }\n\n  /* ---- Owner tweak (2026-07-07): toggle tiles read NEUTRAL until selected ----\n     The .cps-tile group — visit-type tiles, the Need-a-ride toggle, the\n     White-Glove attestation, and the recommendation tiles — now defaults to a\n     gray hairline border. Yellow signals an ACTUAL choice, not a resting\n     default; selection (.cps-sel, above) still fills yellow. Day squares\n     (.cps-day-opt), time slots (.cps-slot), and service quick-picks\n     (.cps-svc-tile) are NOT .cps-tile, so they keep the yellow secondary-button\n     border unchanged. Hover stays subtle (gray border, white fill — never\n     yellow) so a tile only turns yellow once it's chosen. Disabled tiles keep\n     their own muted rule above. */\n  .cps-btn-ghost.cps-tile:not(.cps-sel) {\n    border-color: var(--cps-line);\n  }\n  .cps-btn-ghost.cps-tile:not(.cps-sel):not(:disabled):hover {\n    background: var(--cps-surface);\n    border-color: var(--cps-gray);\n    color: var(--cps-ink);\n  }\n\n  /* ---- Day squares (1b compact calendar week) ----\n     Every tile has IDENTICAL fixed dimensions, always (round 7 item 4 —\n     carried forward): a fixed 44px square showing only the date number, so\n     selecting a day or painting availability can never change any tile's\n     box. The per-tile \"Not available\" sublabel is RETIRED (1b) — the\n     unavailable state is the gray border + #c2c2c2 text, and the non-visual\n     signal is the aria-label (\"Monday, July 6, not available\") painted by\n     paintDayButtons. */\n  .cps-day-opt {\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    height: 44px;\n    min-width: 0;\n    padding: 0;\n    font-size: 14px;\n  }\n  /* Unavailable day tiles: gray border + muted number PLUS a hairline \"/\"\n     drawn corner-to-corner (bottom-left -> top-right) BEHIND the number, so a\n     closed day reads as closed at a glance. The slash is a background gradient\n     (not a pseudo-element), so the date number layers on top and stays fully\n     legible; the gradient points to-bottom-right and the painted band sits\n     perpendicular to it, i.e. along the \"/\" diagonal.\n     SPECIFICITY NOTE: these selectors must out-rank .cps-btn-ghost:disabled\n     (0,2,0) — its `background` SHORTHAND would otherwise reset background-image\n     and wipe the slash. So each selector carries three class/pseudo tokens\n     (.cps-day-opt + .cps-day-unavail + a pseudo), and background is set with\n     the LONGHAND background-color/background-image (never the shorthand). */\n  .cps-day-opt.cps-day-unavail,\n  .cps-day-opt.cps-day-unavail:hover,\n  .cps-day-opt.cps-day-unavail:disabled {\n    border-color: var(--cps-line);\n    color: #c2c2c2;\n    cursor: not-allowed;\n    background-color: var(--cps-surface);\n    background-image: linear-gradient(to bottom right,\n      transparent calc(50% - 0.75px),\n      #cfcfcf calc(50% - 0.75px),\n      #cfcfcf calc(50% + 0.75px),\n      transparent calc(50% + 0.75px));\n  }\n  /* The neutral \"pending\" state every day tile renders in while the\n     availability fetch is in flight — disabled, sublabel line reserved but\n     EMPTY (no \"Not available\" yet; the one-pass paint fills it).\n     Round 8 (item 3): a subtle shimmer/pulse (the SAME cps-skel-pulse the\n     round-7 service skeletons used, brand-neutral) so the grid reads as\n     INTENTIONALLY LOADING rather than as broken, unclickable dates. The\n     fixed tile geometry is untouched — .cps-day-opt keeps its min-height and\n     the reserved sublabel line, so nothing resizes when the verdict lands\n     (paintDayButtons removes .cps-day-pending in one pass). The date label\n     stays visible under the pulse (cleaner than hiding it). Static under\n     prefers-reduced-motion (fallback below). */\n  .cps-day-pending {\n    cursor: default;\n    /* Soft gray FILL (not just an opacity fade) so a loading tile can never\n       be confused with .cps-day-unavail's flat white + gray-border look. */\n    background: #E9E9E9;\n    border-color: var(--cps-line);\n    color: var(--cps-gray);\n    animation: cps-skel-pulse 1.2s ease-in-out infinite;\n  }\n  @media (prefers-reduced-motion: reduce) {\n    .cps-day-pending { animation: none; }\n  }\n\n  /* ---- Shared loading status line (loading-ux plan Task 1): the ONE\n     loading treatment for every \"waiting on data\" text in the widget.\n     Muted gray (.cps-hint base supplies size/color), with a three-dot\n     ellipsis animated via ::after so copy stays static (\"Checking available\n     days\" + animated \"...\"). Static single ellipsis under\n     prefers-reduced-motion. Loading is never red. ---- */\n  .cps-loading::after {\n    content: \"\";\n    animation: cps-loading-dots 1.5s steps(4, end) infinite;\n  }\n  @keyframes cps-loading-dots {\n    0%   { content: \"\"; }\n    25%  { content: \".\"; }\n    50%  { content: \"..\"; }\n    75%  { content: \"...\"; }\n  }\n  @media (prefers-reduced-motion: reduce) {\n    .cps-loading::after { content: \"…\"; animation: none; }\n  }\n\n  /* ---- Slot-chip skeletons (loading-ux plan Task 2): same footprint as a\n     real .cps-slot chip so the row doesn't jump when times land. ---- */\n  .cps-slot-skel {\n    display: inline-block;\n    width: 84px;\n    height: 44px;\n    border-radius: 8px;\n    background: #E9E9E9;\n    animation: cps-skel-pulse 1.2s ease-in-out infinite;\n  }\n  @media (prefers-reduced-motion: reduce) {\n    .cps-slot-skel { animation: none; }\n  }\n\n  /* ---- Week grid (1b compact calendar): ALWAYS 7 equal columns, Mon..Sun —\n     a real calendar row (weekday letters + 44px date squares). The compact\n     squares fit 7-up at every supported width, so the old 4-column mobile\n     reflow is retired. ---- */\n  .cps-days-grid {\n    display: grid;\n    grid-template-columns: repeat(7, minmax(0, 1fr));\n    gap: 6px;\n    text-align: center;\n  }\n\n  /* ---- Wait-appointment time slots: a wrapping row with proper spacing\n     between each time (owner request), same 8px rhythm as the day grid. ---- */\n  #cps-slots {\n    display: flex;\n    flex-wrap: wrap;\n    gap: 8px;\n    margin-top: 6px;\n  }\n\n  /* ---- Quick-pick service tiles (preview feedback round 5): one tappable\n     tile per bookable service, wrapping row, brand ghost-button styling,\n     44px+ tap targets via the .cps-btn floor. ---- */\n  .cps-svc-tiles {\n    display: flex;\n    flex-wrap: wrap;\n    gap: 8px;\n    margin-top: 6px;\n  }\n  .cps-svc-tile {\n    flex: 0 1 auto;\n    font-size: 14px;\n    padding: 10px 14px;\n  }\n\n  /* ---- Page-1 full-width doors (bottom of Popular services) ----\n     Owner ask (review round 2026-07-23): must read \"very clearly\" as its\n     own panel, not another ghost service tile — the stock .cps-btn-ghost\n     look (white fill, yellow border) is otherwise IDENTICAL to the bookable\n     tiles above it. Token-only changes, no font-weight (the typography\n     sweep pins every weight at 400):\n       1. background swaps from --cps-surface (white, same as the tiles) to\n          --cps-bg (#EEEEEE, the page's own background) — an unmistakable\n          fill shift using a token already in the palette, not a new color.\n       2. border-color drops from the tiles' --cps-yellow to a neutral\n          --cps-line hairline at rest, so it stops reading as \"one more\n          yellow-bordered selectable pill\" among the service tiles — same\n          neutral-card language already used for the insp-info panel / OTP\n          card elsewhere in this file. Width/style are left alone (still\n          the shared .cps-btn 2px solid box).\n       3. extra top margin clears it from the tile grid above so it reads\n          as its own section, not another row in it.\n     Hover is intentionally left to fall through to .cps-btn-ghost:hover\n     (fills solid --cps-yellow, border turns yellow) — the site's signature\n     inversion, unchanged, so tapping it still feels like every other\n     secondary button; only the RESTING look is distinct.\n     Shared class (owner feedback 2026-07-24): \"Shop for Tires\" moved out of\n     the pill row into its own full-width door, stacked directly above the\n     returning-work door — both doors share this exact treatment via\n     .cps-door / .cps-door-title / .cps-door-sub (formerly .cps-return-door*,\n     scoped to one door only; renamed, not restyled). */\n  .cps-door {\n    width:100%;\n    margin-top:20px;\n    padding:14px;\n    background:var(--cps-bg);\n    border-color:var(--cps-line);\n    display:flex;\n    flex-direction:column;\n    align-items:flex-start;\n    gap:4px;\n    text-align:left;\n  }\n  .cps-door-title { font-size:15px; }\n  .cps-door-sub { font-size:13px; color:var(--cps-gray); }\n\n  /* ---- Non-bookable info tiles (VA Safety / Emissions inspection): live in\n     the Popular-services row so customers find them where they look, but they\n     never enter the basket — a tap opens an advisory panel instead. Styled\n     with a NEUTRAL gray outline (not the bookable tiles' yellow border) so\n     they never read as a selectable service; a tap that opens the panel\n     leaves a subtle filled/gray-border active state. ---- */\n  .cps-btn-ghost.cps-svc-tile--info {\n    border-color: var(--cps-line);\n    color: var(--cps-gray);\n  }\n  .cps-btn-ghost.cps-svc-tile--info:hover {\n    background: var(--cps-surface);\n    border-color: var(--cps-gray);\n    color: var(--cps-ink);\n  }\n  .cps-btn-ghost.cps-svc-tile--info[aria-pressed=\"true\"],\n  .cps-btn-ghost.cps-svc-tile--info[aria-pressed=\"true\"]:hover {\n    background: #F7F7F7;\n    border-color: var(--cps-gray);\n    color: var(--cps-ink);\n  }\n\n  /* ---- Shimmer/pulse keyframe (round 8 item 3): the brand-neutral loading\n     pulse. Round 7 used it on Popular-services SKELETON tiles; round 8 seeds\n     those tiles from CONFIG.popularServices so they render real from the\n     first paint (no service skeletons anymore), and this keyframe now drives\n     the DAY-GRID pending shimmer (.cps-day-pending above) — the one place\n     the customer waits on a live read. A gentle opacity pulse, disabled\n     under prefers-reduced-motion where it is declared. ---- */\n  @keyframes cps-skel-pulse {\n    0%, 100% { opacity: 1; }\n    50%      { opacity: 0.55; }\n  }\n\n  /* ---- Free-text inputs inside question/form cards (preview feedback\n     round 5, owner screenshot): an inline width:100% input with its own\n     padding + border overflows its card without border-box — pin every\n     .cps-field input (and the \"Something else\" input specifically) to the\n     card's box. ---- */\n  #cps-intake-other,\n  .cps-field input {\n    max-width: 100%;\n    box-sizing: border-box;\n  }\n\n  /* ---- Form fields ---- */\n  .cps-field { margin-bottom: 14px; }\n  .cps-field label {\n    display: block;\n    font-size: 12.5px;\n    font-weight: 400;\n    color: var(--cps-ink);\n    margin-bottom: 5px;\n  }\n\n  /* ---- Checkbox label rows (WG attest, ride, inspection add-on, intake\n     multi-choice) — the whole row is the clickable target, so it gets the\n     tap-target floor, not just the 16x16 checkbox itself. ---- */\n  .cps-check-row { min-height: 44px; box-sizing: border-box; }\n\n  .cps-textarea {\n    width: 100%;\n    box-sizing: border-box;\n    font-family: var(--cps-font);\n    font-size: 15px;\n    color: var(--cps-ink);\n    background: var(--cps-surface);\n    border: 1.5px solid var(--cps-line);\n    border-radius: var(--cps-radius-ctl);\n    padding: 11px 12px;\n    transition: border-color 0.12s;\n    resize: vertical;\n    min-height: 90px;\n  }\n  .cps-textarea:focus {\n    outline: none;\n    border-color: var(--cps-red);\n  }\n  .cps-hint {\n    font-size: 12px;\n    /* Small (<=16px) muted text — uses the AA-safe --cps-gray-strong, not\n       --cps-gray (v2 Task 13 finding 4; see :root for the contrast math). */\n    color: var(--cps-gray-strong);\n    margin-top: 6px;\n  }\n\n  /* ---- Send affordance for the concern textarea — a full-width secondary\n     button BELOW the box (owner pick, replacing the earlier in-box circle+arrow\n     that overlapped the typed text and read as bolted-on: it was the only\n     circle and only arrow anywhere in the widget). The AI-intake trigger stays\n     DISCOVERABLE, and the text box is now a clean, full-height writing space.\n     Ghost styling + the site's signature hover inversion come from\n     .cps-btn.cps-btn-ghost; this rule only adds the full-width block layout and\n     the gap above it. A typed-but-un-added concern is still folded into the\n     visit on Continue (foldConcernDraft) — this button is the path that ALSO\n     starts the clarifying questions. ---- */\n  .cps-concern-add {\n    display: block;\n    width: 100%;\n    margin-top: 10px;\n    font-size: 15px;\n  }\n\n  /* ---- OTP PIN entry (4 boxes, one digit each) ---- */\n  .cps-pin-row { display: flex; gap: 10px; margin-top: 6px; }\n  .cps-pin-box {\n    width: 48px;\n    height: 56px;\n    min-height: 44px;\n    min-width: 44px;\n    box-sizing: border-box;\n    font-family: var(--cps-font);\n    font-size: 22px;\n    font-weight: 400;\n    text-align: center;\n    color: var(--cps-ink);\n    background: var(--cps-surface);\n    border: 1.5px solid var(--cps-line);\n    border-radius: var(--cps-radius-ctl);\n    transition: border-color 0.12s;\n  }\n  .cps-pin-box:focus {\n    outline: none;\n    border-color: var(--cps-red);\n  }\n\n  /* ---- Stub step placeholder ---- */\n  .cps-stub {\n    padding: 32px 0 8px;\n    text-align: center;\n    font-size: 14px;\n    color: var(--cps-gray);\n  }\n\n  /* ---- Confirm step: review rows (label/value pairs, no price) ---- */\n  .cps-review {\n    background: var(--cps-surface);\n    border: 1.5px solid var(--cps-line);\n    border-radius: var(--cps-radius-ctl);\n    padding: 4px 14px;\n  }\n  .cps-review-row {\n    display: flex;\n    justify-content: space-between;\n    align-items: baseline;\n    gap: 14px;\n    padding: 11px 0;\n    border-bottom: 1px solid var(--cps-line);\n  }\n  .cps-review-row:last-child { border-bottom: none; }\n  .cps-review-label {\n    font-size: 12.5px;\n    font-weight: 400;\n    color: var(--cps-gray);\n    white-space: nowrap;\n  }\n  .cps-review-value {\n    flex: 1; /* 1b: rows gained a third (Edit-link) column — the value still fills the middle, right-aligned */\n    font-size: 14.5px;\n    color: var(--cps-ink);\n    text-align: right;\n  }\n\n  /* Grouped review sections (Concerns / Services) — a titled group whose items\n     each sit on their own line with an Edit link, replacing the old\n     one-label-per-row layout and the redundant Add-ons row. Logistics rows\n     (Day / Visit type / Vehicle / Inspection) keep .cps-review-row. */\n  .cps-review-group {\n    padding: 11px 0;\n    border-bottom: 1px solid var(--cps-line);\n  }\n  .cps-review-group-title {\n    font-size: 12.5px;\n    font-weight: 400;\n    color: var(--cps-gray);\n    text-transform: uppercase;\n    letter-spacing: 0.04em;\n    margin-bottom: 4px;\n  }\n  .cps-review-item {\n    display: flex;\n    justify-content: space-between;\n    align-items: baseline;\n    gap: 14px;\n    padding: 4px 0;\n  }\n  .cps-review-item .cps-review-value { text-align: left; }\n\n  /* ---- Spinner ---- */\n  .cps-spinner {\n    width: 18px;\n    height: 18px;\n    border: 2.5px solid rgba(6, 6, 6, 0.2);\n    border-top-color: var(--cps-ink);\n    border-radius: 50%;\n    display: inline-block;\n    animation: cps-spin 0.7s linear infinite;\n    vertical-align: -3px;\n    margin-right: 8px;\n  }\n  @keyframes cps-spin { to { transform: rotate(360deg); } }\n\n  /* ---- Indeterminate progress (intake pending — preview feedback round 2).\n     Brand yellow sweep on the page-gray track, slim (4px). CSS-only; under\n     prefers-reduced-motion the sweep is replaced by a static filled track\n     (state is still conveyed by the \"One moment...\" text + announce()). ---- */\n  .cps-progress {\n    height: 4px;\n    max-width: 320px;\n    background: var(--cps-bg);\n    border-radius: 2px;\n    overflow: hidden;\n  }\n  .cps-progress-bar {\n    height: 100%;\n    width: 40%;\n    background: var(--cps-yellow);\n    border-radius: 2px;\n    animation: cps-progress-slide 1.2s ease-in-out infinite;\n  }\n  @keyframes cps-progress-slide {\n    0%   { transform: translateX(-100%); }\n    100% { transform: translateX(350%); }\n  }\n  @media (prefers-reduced-motion: reduce) {\n    .cps-progress-bar { animation: none; width: 100%; }\n  }\n\n  /* ---- Success ---- */\n  .cps-success {\n    text-align: center;\n    padding: 32px 16px 16px;\n  }\n  .cps-success .cps-circle {\n    width: 66px;\n    height: 66px;\n    border-radius: 50%;\n    background: rgba(27, 138, 90, 0.12);\n    color: var(--cps-ok);\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    font-size: 28px;\n    font-weight: 400;\n    margin: 0 auto 16px;\n  }\n  .cps-success h3 {\n    margin: 0 0 8px;\n    font-size: 21px;\n    font-weight: 400;\n    color: var(--cps-ink);\n    text-transform: none;\n    letter-spacing: 0;\n  }\n  .cps-success p {\n    margin: 0 auto 6px;\n    font-size: 14.5px;\n    /* Small (<=16px) muted text — uses the AA-safe --cps-gray-strong, not\n       --cps-gray (v2 Task 13 finding 4; see :root for the contrast math). */\n    color: var(--cps-gray-strong);\n    max-width: 380px;\n    line-height: 1.5;\n  }\n\n  /* ============================================================================\n     RESPONSIVE — small phones (spec §10). Desktop (>480px) is the existing\n     centered card, untouched above this block. Below 480px the modal goes\n     near-full-screen: header + stepper stay visible, the body region\n     (#cps-bodyc) is the sole scroll container, and the footer CTA docks to\n     the bottom of the modal with safe-area padding so it clears notches/\n     home-indicators on notched phones.\n\n     Scroll-container contract: .cps-body is the ONLY thing that scrolls on\n     mobile. .cps-modal is sized to the viewport (100dvh) with\n     `display:flex;flex-direction:column`; .cps-head/.cps-steps/.cps-foot\n     are `flex:0 0 auto` (fixed size) and .cps-body is `flex:1 1 auto;\n     overflow-y:auto` (the only item that grows/scrolls). Because .cps-foot\n     is a normal flex sibling — not position:fixed/absolute — it always\n     reserves its own space below .cps-body; there's no overlap to guard\n     against with synthetic bottom-padding on .cps-body, so none is added.\n     visualViewport (below, feature-detected) only needs to nudge\n     .cps-body's scroll position when the soft keyboard opens, not touch\n     this padding contract.\n     ============================================================================ */\n  @media (max-width: 480px) {\n    .cps-overlay {\n      padding: 0;\n      align-items: stretch;\n    }\n    .cps-modal {\n      max-width: 100%;\n      height: 100vh;   /* fallback for browsers without dvh support */\n      height: 100dvh;\n      /* .cps-modal is content-box by default and carries a 4px top border\n         (desktop rule above); on mobile the height is set explicitly via\n         100vh/100dvh, so with content-box that 4px border adds ON TOP of\n         the viewport-sized height — 4px taller than the viewport, clipping\n         the sticky footer. border-box folds the border into the declared\n         height instead. */\n      box-sizing: border-box;\n      margin: 0;\n      border-radius: 0;\n      border-top-left-radius: 0;\n      border-top-right-radius: 0;\n      display: flex;\n      flex-direction: column;\n      animation: none;\n    }\n    .cps-head {\n      padding: calc(14px + env(safe-area-inset-top)) 16px 12px;\n      flex: 0 0 auto;\n    }\n    .cps-steps {\n      padding: 12px 16px 0;\n      flex: 0 0 auto;\n    }\n    .cps-body {\n      padding: 16px 16px 8px;\n      flex: 1 1 auto;\n      overflow-y: auto;\n      -webkit-overflow-scrolling: touch;\n    }\n    .cps-foot {\n      /* Pinned to the modal bottom by the flex column layout above (.cps-body\n         is the only flexible/scrolling item) — no position:sticky needed\n         since .cps-foot never sits inside the scrolling region. */\n      flex: 0 0 auto;\n      background: var(--cps-bg);\n      padding: 12px 16px calc(14px + env(safe-area-inset-bottom));\n      border-top: 1px solid var(--cps-line);\n    }\n  }";
+  st.textContent = "/* ---- Brand tokens — exact values from cardinalplazashell.com (Duda theme) ---- */\n  :root {\n    --cps-yellow:  #FFD305;   /* Shell yellow — primary CTA fill + border */\n    /* Hover-only yellows. A hover that fills SOLID --cps-yellow is\n       indistinguishable from .cps-sel, so an unselected control under the\n       cursor reads as chosen and a just-deselected one still looks selected\n       (owner report 2026-08-05). Unselected hover uses the pale tint;\n       selected hover deepens instead. Both are hover-gated to fine pointers\n       (see .cps-hoverable rules) so touch never sticks either state. */\n    --cps-yellow-tint: #FFF3B8;  /* unselected hover — clearly NOT the solid fill */\n    --cps-yellow-deep: #EFC400;  /* selected hover — \"click to change\" */\n    --cps-red:     #DB1D20;   /* Brand red — accent / focus */\n    --cps-ink:     #060606;   /* Primary text (near-black) */\n    --cps-gray:    #727272;   /* Muted text + headings */\n    /* --cps-gray-strong — derived contrast-safe variant of --cps-gray for\n       SMALL (<=16px) muted text only (v2 Task 13 finding 4). #727272 on\n       --cps-bg (#EEEEEE) computes to 4.15:1 — passes the 3:1 large-text\n       threshold (so headings/.cps-h3 keep --cps-gray unchanged, per design\n       contract) but fails the 4.5:1 AA threshold for normal/small text.\n       #666666 on #EEEEEE clears 4.5:1. Never used for headings. */\n    --cps-gray-strong: #666666;\n    --cps-bg:      #EEEEEE;   /* Page / modal background */\n    --cps-surface: #FFFFFF;   /* Cards / panels (also #F7F7F7 for secondary) */\n\n    --cps-line:    #E4E7EB;   /* Hairline borders */\n    --cps-ok:      #1B8A5A;   /* Success green */\n    --cps-shadow:  0 18px 50px rgba(16, 20, 28, 0.28);\n    --cps-radius:  14px;      /* Modal shell corner */\n    --cps-radius-ctl: 8px;    /* Buttons / inputs / chips */\n    --cps-font:    \"Inter\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif;\n  }\n\n  /* ---- Minimal local-test launcher (not deployed to Duda) ---- */\n  .cps-local-launcher {\n    font-family: var(--cps-font);\n    background: var(--cps-bg);\n    min-height: 100vh;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    margin: 0;\n  }\n\n  /* ---- Modal overlay ---- */\n  .cps-overlay {\n    position: fixed;\n    inset: 0;\n    background: rgba(10, 12, 16, 0.62);\n    backdrop-filter: blur(3px);\n    display: none;\n    align-items: flex-start;\n    justify-content: center;\n    z-index: 99999;\n    padding: 28px 16px;\n    overflow-y: auto;\n  }\n  .cps-overlay.cps-open { display: flex; }\n\n  /* Address autocomplete — PlaceAutocompleteElement (Places API New).\n     The legacy Autocomplete dropdown was a body-appended pac-container that\n     needed a z-index bump above the 99999 overlay; the new element renders\n     its suggestion list inside its OWN shadow DOM, positioned within the\n     element and therefore inside the modal's stacking context — no page CSS\n     is needed for the dropdown, so that stale rule is deleted. Styling goes\n     through the element's documented hooks: standard host properties plus\n     ::part() (input, prediction-list, ...). Matched to the widget's control\n     look (.cps-textarea): 44px height, control radius, Inter, brand line\n     border. NOT matchable (component-internal): the focus ring geometry,\n     the built-in search icon/clear button, and the exact 1.5px inner input\n     border (the host carries the widget border instead). */\n  .cps-addr-ac {\n    display: block;\n    width: 100%;\n    box-sizing: border-box;\n    font-family: var(--cps-font);\n    color-scheme: light;\n    background-color: var(--cps-surface);\n    border: 1.5px solid var(--cps-line);\n    border-radius: var(--cps-radius-ctl);\n  }\n  .cps-addr-ac::part(input) {\n    min-height: 44px;\n    padding: 11px 12px;\n    font-family: var(--cps-font);\n    font-size: 15px;\n    color: var(--cps-ink);\n    border-radius: var(--cps-radius-ctl);\n  }\n  .cps-addr-ac::part(prediction-list) {\n    font-family: var(--cps-font);\n    font-size: 15px;\n    color: var(--cps-ink);\n    border-radius: var(--cps-radius-ctl);\n  }\n\n  /* ---- Modal shell ---- */\n  .cps-modal {\n    font-family: var(--cps-font);\n    background: var(--cps-bg);\n    width: 100%;\n    max-width: 560px;\n    border-radius: var(--cps-radius);\n    border-top: 4px solid var(--cps-yellow);\n    box-shadow: var(--cps-shadow);\n    overflow: hidden;\n    position: relative;\n    animation: cps-pop 0.22s cubic-bezier(0.2, 0.8, 0.25, 1);\n  }\n  @keyframes cps-pop {\n    from { opacity: 0; transform: translateY(14px) scale(0.985); }\n    to   { opacity: 1; transform: none; }\n  }\n\n  /* TireConnect panel layer (spec 2026-07-17): covers the modal's body+foot\n     area and scrolls itself — TC results run 3000px+ (2026-07-06 sizing\n     lesson). Positioned against .cps-modal, which is position:relative\n     above. */\n  .cps-tc-layer {\n    position: absolute; inset: 0; background: var(--cps-surface, #FFFFFF);\n    z-index: 5; display: flex; flex-direction: column; overflow-y: auto; overflow-x: hidden;\n  }\n  /* [hidden] must actually hide (found 2026-08-05, latent since 2026-07-17):\n     the display:flex above OVERRIDES the hidden attribute's non-important UA\n     rule, so the closed panel stayed visible over page 1 on any host page\n     without its own [hidden] reset. Live Duda pages happen to ship one —\n     the widget must not depend on the host's stylesheet for this. */\n  .cps-tc-layer[hidden] { display: none; }\n  .cps-tc-layer .cps-tc-head {\n    background: var(--cps-surface);\n    color: var(--cps-ink);\n    padding: 16px 22px 13px;\n    position: relative;\n    border-bottom: 1px solid var(--cps-line);\n  }\n  .cps-tc-layer .cps-tc-head .cps-logo { height: 34px; width: auto; display: block; margin: 0 0 7px; }\n  .cps-tc-layer .cps-tc-head .cps-shop { font-size: 15px; font-weight: 400; color: var(--cps-ink); letter-spacing: 0.01em; margin: 0 0 4px; }\n  .cps-tc-layer .cps-tc-head h2 { margin: 0; font-size: 14.5px; font-weight: 400; color: var(--cps-gray); }\n  .cps-tc-back {\n    position: absolute; top: 14px; right: 14px;\n    border: 0; background: #EFEFEF; color: #5b5b5b;\n    border-radius: 16px; padding: 6px 13px; cursor: pointer;\n    font-family: var(--cps-font); font-size: 13px; line-height: 1;\n  }\n  .cps-tc-layer #cps-tc-embed { flex: 1 1 auto; min-height: 300px; max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }\n\n  /* ---- Modal header ---- */\n  .cps-head {\n    background: var(--cps-surface);\n    color: var(--cps-ink);\n    padding: 16px 22px 13px;\n    position: relative;\n    border-bottom: 1px solid var(--cps-line);\n  }\n  .cps-head .cps-logo {\n    height: 34px;\n    width: auto;\n    display: block;\n    margin: 0 0 7px;\n  }\n  /* Preview feedback round 7 (item 1, the owner): the site itself renders\n     Inter at REGULAR weights, so the widget does too — every font-weight in\n     this stylesheet is 400 except .cps-btn-primary (500, the one deliberate\n     exception: 15px ink on the saturated yellow fill reads washed-out at\n     400; 500 is the lightest weight that anchors the CTA without reading\n     as bold against the site style). */\n  .cps-head .cps-shop {\n    font-size: 15px;\n    font-weight: 400;\n    color: var(--cps-ink);\n    letter-spacing: 0.01em;\n    margin: 0 0 4px;\n  }\n  .cps-head h2 {\n    margin: 0;\n    font-size: 14.5px;\n    font-weight: 400;\n    color: var(--cps-gray);\n  }\n  #cps-h2:focus { outline: none; } /* programmatic focus target only (tabindex=-1) — suppress the default ring; not keyboard-interactive */\n  .cps-x {\n    position: absolute;\n    top: 14px;\n    right: 14px;\n    width: 32px;\n    height: 32px;\n    border-radius: 50%;\n    border: 0;\n    cursor: pointer;\n    background: #EFEFEF;\n    color: #5b5b5b;\n    font-size: 18px;\n    line-height: 1;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    font-family: var(--cps-font);\n  }\n  .cps-x:hover { background: #E2E2E2; color: var(--cps-ink); }\n  /* Tap-target floor (WCAG, >=44x44) — same expanded-hit-area pattern as\n     .cps-step-btn / #cps-wg-info: keep the visible 32px circle, expand only\n     the invisible hit area via an absolutely-positioned ::before (.cps-x is\n     already `position:absolute`, so it's already a positioning context —\n     no change needed there). .cps-x sits alone in the header corner (no\n     adjacent interactive control), so the wider invisible hit area can't\n     overlap another target. */\n  .cps-x::before {\n    content: \"\";\n    position: absolute;\n    top: 50%;\n    left: 50%;\n    width: 44px;\n    height: 44px;\n    transform: translate(-50%, -50%);\n  }\n\n  /* ---- Step progress dots ---- */\n  /* 1b redesign: #cps-steps is now a block containing the bar row\n     (.cps-steps-bars) plus the caption line below it, so the flex row moves\n     to the inner wrapper. */\n  .cps-steps {\n    display: block;\n    padding: 14px 22px 0;\n  }\n  .cps-steps-bars {\n    display: flex;\n    gap: 6px;\n  }\n  /* Stepper caption (1b): names the current step and previews the next one —\n     \"STEP 2 OF 6 · TIME · NEXT: VERIFY YOUR NUMBER\". Plain '·' separators. */\n  .cps-step-caption {\n    margin: 8px 0 0;\n    font-size: 11px;\n    color: var(--cps-gray-strong);\n    letter-spacing: 0.06em;\n    text-transform: uppercase;\n  }\n\n  /* ---- Step progress dots as buttons (v2 Task 10 — clickable stepper) ----\n     The visible bar stays a thin 5px strip (unchanged look — see Task 12's\n     \"no visual redesign\" constraint); tap-target compliance (>=44x44, per\n     spec §10) is met with an invisible ::before that expands the hit area\n     without inflating the strip itself. */\n  .cps-step-btn {\n    appearance: none;\n    -webkit-appearance: none;\n    position: relative;\n    height: 5px;\n    flex: 1;\n    border: 0;\n    border-radius: 999px;\n    background: var(--cps-line);\n    transition: background 0.25s;\n    padding: 0;\n    margin: 0;\n    cursor: pointer;\n    font-family: var(--cps-font);\n  }\n  .cps-step-btn::before {\n    content: \"\";\n    position: absolute;\n    left: 0;\n    right: 0;\n    top: 50%;\n    transform: translateY(-50%);\n    min-height: 44px;\n  }\n  /* Completed bars: brand red at reduced opacity rather than the off-token\n     #AB0000 that was hardcoded here — same visual weight, one source of truth\n     for the color. */\n  .cps-step-btn.cps-done   { background: var(--cps-red); opacity: 0.75; cursor: pointer; }\n  .cps-step-btn.cps-active { background: var(--cps-red); cursor: default; }\n  .cps-step-btn:disabled   { cursor: default; }\n  /* Done-bar hover must NOT become --cps-red — that is the active-step color,\n     and a latched touch hover left two bars reading as \"you are here\". */\n  @media (hover: hover) and (pointer: fine) {\n    .cps-step-btn.cps-done:hover { background: #C41416; }\n  }\n  .cps-step-btn:disabled:not(.cps-active) { background: var(--cps-line); }\n\n  /* ---- Visually hidden (a11y live region + step-button labels) ---- */\n  .cps-sr-only {\n    position: absolute;\n    width: 1px;\n    height: 1px;\n    padding: 0;\n    margin: -1px;\n    overflow: hidden;\n    clip: rect(0, 0, 0, 0);\n    white-space: nowrap;\n    border: 0;\n  }\n\n  /* ---- Modal body + footer ---- */\n  .cps-body {\n    padding: 20px 22px 8px;\n    min-height: 230px;\n  }\n  .cps-foot {\n    display: flex;\n    gap: 10px;\n    align-items: center;\n    padding: 16px 22px 20px;\n  }\n\n  /* ---- Headings (gray, per design contract) ----\n     clamp() type scale (spec §10): desktop keeps today's exact sizes (the\n     clamp() max is each rule's pre-existing value, so >480px is visually\n     unchanged); the min is a readable floor for narrow phones, with the\n     viewport-relative middle term doing the fluid scaling in between. */\n  .cps-body h3 {\n    margin: 0 0 6px;\n    font-size: clamp(17px, 4.5vw, 20px);\n    font-weight: 400;\n    color: var(--cps-gray);\n    text-transform: uppercase;\n    letter-spacing: 0.03em;\n  }\n  .cps-steptitle {\n    font-size: clamp(19px, 5vw, 22px);\n    font-weight: 400;\n    margin: 0 0 4px;\n    color: var(--cps-gray);\n  }\n  .cps-stepsub {\n    font-size: clamp(12.5px, 3.4vw, 13.5px);\n    line-height: 1.5;\n    /* Small (<=16px) muted text — uses the AA-safe --cps-gray-strong, not\n       --cps-gray (v2 Task 13 finding 4; see :root for the contrast math). */\n    color: var(--cps-gray-strong);\n    margin: 0 0 18px;\n  }\n\n  /* ============================================================================\n     1b SECTIONED REDESIGN — shared components (design handoff\n     design_handoff_booking_widget_1b). Every content zone is a white SECTION\n     CARD with a small uppercase title; nothing floats directly on the gray\n     modal background.\n     ============================================================================ */\n  .cps-section {\n    background: var(--cps-surface);\n    border: 1.5px solid var(--cps-line);\n    border-radius: var(--cps-radius-ctl);\n    padding: 14px;\n    margin-bottom: 12px;\n  }\n  .cps-section-title {\n    margin: 0 0 10px;\n    font-size: 11px;\n    color: var(--cps-gray);\n    letter-spacing: 0.06em;\n    text-transform: uppercase;\n    font-weight: 400;\n  }\n  /* Emphasis variant — the \"Your visit so far\" basket card. */\n  .cps-section--em { border: 2px solid var(--cps-yellow); }\n\n  /* Full-width toggle tile (visit-type cards, ride, WG attestation, recs):\n     selection is conveyed by COLOR only (white -> yellow fill via .cps-sel);\n     tiles never resize on selection. Carries aria-pressed in the markup. */\n  .cps-tile {\n    display: block;\n    width: 100%;\n    text-align: left;\n    padding: 12px 14px;\n    font-size: 14px;\n    line-height: 1.45;\n  }\n  .cps-tile-title { display: block; font-size: 15px; }\n  .cps-tile-desc  { display: block; font-size: 12px; color: var(--cps-gray-strong); margin-top: 2px; line-height: 1.45; }\n  .cps-btn-ghost.cps-sel .cps-tile-desc,\n  .cps-btn-ghost.cps-sel .cps-tile-sub { color: #5b5b5b; }\n  .cps-tile-sub { display: block; font-size: 12px; color: var(--cps-gray-strong); margin-top: 2px; }\n  /* Disabled/unavailable tile: never a yellow border on something unclickable. */\n  .cps-btn-ghost.cps-tile:disabled,\n  .cps-btn-ghost.cps-tile:disabled:hover {\n    border-color: var(--cps-line);\n    color: #9a9a9a;\n    background: var(--cps-surface);\n    cursor: not-allowed;\n  }\n  .cps-btn-ghost.cps-tile:disabled .cps-tile-desc { color: #b0b0b0; }\n\n  /* ---- Seasonal promo card (CONFIG.promo — Back to School, August only):\n     a .cps-tile full-width toggle at the top of the Popular-services\n     section with the inclusions list always visible. Inclusion lines get a\n     red check accent (site red as accent, per the design contract), flipped\n     to ink on the yellow selected fill for contrast. ---- */\n  .cps-promo-tile { margin: 0 0 10px; }\n  .cps-promo-inc {\n    display: block;\n    font-size: 12.5px;\n    color: var(--cps-gray-strong);\n    margin-top: 2px;\n    line-height: 1.5;\n  }\n  .cps-promo-inc::before { content: \"\\2713\\00a0\\00a0\"; color: var(--cps-red); }\n  .cps-btn-ghost.cps-sel .cps-promo-inc { color: #5b5b5b; }\n  .cps-btn-ghost.cps-sel .cps-promo-inc::before { color: var(--cps-ink); }\n\n  /* Underlined text-link button (basket Remove, Resend code, Change number,\n     review-row Edit) — plain text affordances, not boxed buttons. */\n  .cps-linkbtn {\n    appearance: none;\n    background: none;\n    border: 0;\n    padding: 6px 2px;\n    font-family: var(--cps-font);\n    font-size: 13px;\n    /* gray-strong, not gray: these sit on --cps-bg where #727272 is 4.15:1\n       (below AA for text this size). */\n    color: var(--cps-gray-strong);\n    text-decoration: underline;\n    cursor: pointer;\n    /* 44px tap floor — every other control in the widget has one; these\n       (Remove, Resend code, Change number, review Edit) measured ~28px. */\n    display: inline-flex;\n    align-items: center;\n    min-height: 44px;\n    box-sizing: border-box;\n    -webkit-tap-highlight-color: transparent;\n    touch-action: manipulation;\n  }\n  .cps-linkbtn:active { filter: brightness(0.7); }\n  @media (hover: hover) and (pointer: fine) {\n    .cps-linkbtn:hover { color: var(--cps-ink); }\n  }\n\n  /* Step notice — the visible half of a reroute explanation (slot taken,\n     session timeout, handling reset). Informational, not an error: a calm\n     yellow-tinted card with a red rule, never the alarm red of .cps-err. */\n  .cps-notice {\n    font-size: 14px;\n    line-height: 20px;\n    color: var(--cps-ink);\n    background: var(--cps-yellow-tint);\n    border-left: 3px solid var(--cps-red);\n    border-radius: var(--cps-radius-ctl);\n    padding: 10px 12px;\n    margin: 0 0 14px;\n  }\n\n  /* Error line (verify step) — red, 12px. */\n  .cps-err {\n    font-size: 12px;\n    color: var(--cps-red);\n    margin-top: 6px;\n  }\n\n  /* Calendar week (1b): MON-SUN letters row + 44px date squares, chevron\n     week nav in the section-title row. */\n  .cps-cal-head {\n    display: flex;\n    align-items: center;\n    justify-content: space-between;\n    margin: 0 0 10px;\n  }\n  .cps-cal-head .cps-section-title { margin: 0; }\n  .cps-cal-nav { display: flex; gap: 6px; }\n  .cps-wk-btn {\n    width: 32px;\n    height: 32px;\n    min-width: 32px;\n    min-height: 32px;\n    padding: 0;\n    border-radius: 50%;\n    font-size: 15px;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    position: relative;\n  }\n  /* Expanded invisible hit area (same pattern as .cps-x) so the visible\n     32px circle still meets the 44px tap-target floor. */\n  .cps-wk-btn::before {\n    content: \"\";\n    position: absolute;\n    top: 50%;\n    left: 50%;\n    width: 44px;\n    height: 44px;\n    transform: translate(-50%, -50%);\n  }\n  .cps-cal-dow {\n    /* Was 10px #9a9a9a on white — about 2.8:1, and these letters carry real\n       information (which column is which weekday). Bumped to the AA-safe gray\n       at a legible size. */\n    font-size: 11px;\n    color: var(--cps-gray-strong);\n    text-align: center;\n    letter-spacing: 0.04em;\n  }\n\n  /* ---- Primary CTA button: yellow fill, 2px solid yellow border, 8px radius, ink text ---- */\n  /* hover inverts: white fill, yellow border, ink text */\n  .cps-btn {\n    appearance: none;\n    font-family: var(--cps-font);\n    cursor: pointer;\n    border-radius: var(--cps-radius-ctl);\n    font-size: 15px;\n    font-weight: 400;\n    padding: 12px 20px;\n    border: 2px solid transparent;\n    transition: transform 0.1s, background 0.12s, border-color 0.12s, color 0.12s;\n    /* Tap target floor (spec §10) — .cps-btn is the shared base for\n       .cps-btn-primary/.cps-btn-ghost, which in turn cover day buttons\n       (.cps-day-opt) and time-slot buttons (.cps-slot); one rule here\n       covers all of them without a visual redesign (padding already gets\n       most of the way there — this just guarantees the floor). */\n    min-height: 44px;\n    min-width: 44px;\n    box-sizing: border-box;\n    /* Touch ergonomics: kill the platform's translucent tap flash (we paint\n       our own :active) and opt out of double-tap-to-zoom so a tap registers\n       immediately instead of after the browser's gesture wait. */\n    -webkit-tap-highlight-color: transparent;\n    touch-action: manipulation;\n  }\n  /* Press feedback: the nudge alone is easy to miss on a phone, so a press\n     also dims the control briefly — the immediate \"I got that\" every native\n     app gives. Applies on touch AND mouse (it is :active, not :hover). */\n  .cps-btn:active:not(:disabled) { transform: translateY(1px); filter: brightness(0.94); }\n\n  /* PRIMARY button — matches the site theme's Primary style exactly:\n     yellow fill, 2px yellow border, black Inter text, centered, 17px, and\n     the site's signature HOVER INVERSION to a white fill (border + text\n     hold). Weight is REGULAR (400) to match the site's own button, which is\n     not bold (owner request); at 17px black on yellow stays legible. This\n     retires the last >400 weight — the whole widget is now Inter 400. */\n  .cps-btn-primary {\n    background: var(--cps-yellow);\n    color: var(--cps-ink);\n    border-color: var(--cps-yellow);\n    flex: 1;\n    font-size: 17px;\n    font-weight: 400;\n    text-align: center;\n  }\n  .cps-btn-primary:hover {\n    background: var(--cps-surface);\n    border-color: var(--cps-yellow);\n    color: var(--cps-ink);\n  }\n  .cps-btn-primary:disabled {\n    background: #F4E08C;\n    border-color: #F4E08C;\n    color: #8a8460;\n    cursor: not-allowed;\n  }\n\n  /* SECONDARY button (.cps-btn-ghost) — matches the site theme's Secondary\n     style: WHITE fill, 2px YELLOW border, black Inter text, and the hover\n     INVERSION to a yellow fill (border + text hold). This is the widget's\n     every-other-button style (Back, day tiles, time slots, handling options,\n     service tiles, add-another, week nav, Remove). Selected day/slot uses\n     .cps-sel (yellow fill) below. Disabled ghosts (unavailable/pending days,\n     capped week nav) drop to a MUTED gray outline so they never read as an\n     active yellow-bordered option. */\n  .cps-btn-ghost {\n    background: var(--cps-surface);\n    color: var(--cps-ink);\n    border-color: var(--cps-yellow);\n  }\n  /* Hover is MOUSE-ONLY. On touch, :hover latches at the last tap point and\n     survives the innerHTML swap render() does, so a solid-yellow hover made a\n     just-deselected tile keep looking selected until the page moved — the\n     \"unclick doesn't show\" report. @media (hover: hover) and (pointer: fine)\n     removes the whole class of stale-hover artifacts on phones/tablets. */\n  @media (hover: hover) and (pointer: fine) {\n    .cps-btn-ghost:not(:disabled):hover {\n      background: var(--cps-yellow-tint);\n      border-color: var(--cps-yellow);\n      color: var(--cps-ink);\n    }\n  }\n  .cps-btn-ghost:disabled,\n  .cps-btn-ghost:disabled:hover {\n    background: var(--cps-surface);\n    border-color: var(--cps-line);\n    color: var(--cps-gray);\n    cursor: not-allowed;\n  }\n\n  /* ---- Skip link (Help + Recommended step footers) — was inline-styled\n     identically in both places (v2 Task 9 leftover); defined once here\n     (v2 Task 12 absorbed minor). Same visual as before, plus a proper\n     inline-flex + min-height so the tap target meets the 44px floor. ---- */\n  .cps-skip {\n    display: inline-flex;\n    align-items: center;\n    font-size: 13.5px;\n    /* Renders in the footer over --cps-bg — same AA shortfall as .cps-door-sub. */\n    color: var(--cps-gray-strong);\n    text-decoration: underline;\n    padding: 8px 4px;\n    white-space: nowrap;\n    min-height: 44px;\n    box-sizing: border-box;\n  }\n\n  /* ---- Selected state (day/time picks): filled yellow, same as primary CTA, ---- */\n  /* so the chosen day/slot reads as \"active\" against the outlined ghost options. */\n  .cps-btn-ghost.cps-sel {\n    background: var(--cps-yellow);\n    border-color: var(--cps-yellow);\n    color: var(--cps-ink);\n    font-weight: 400; /* round 7 (item 4): selection is conveyed by COLOR only — no weight change, so the tile never resizes */\n  }\n  /* Selected + hover DEEPENS (mouse only) rather than holding the same fill:\n     the cursor sitting on a selected control now reads \"click to change\",\n     and selected can never be confused with a hovered-unselected neighbour. */\n  @media (hover: hover) and (pointer: fine) {\n    .cps-btn-ghost.cps-sel:not(:disabled):hover {\n      background: var(--cps-yellow-deep);\n      border-color: var(--cps-yellow-deep);\n      color: var(--cps-ink);\n    }\n  }\n\n  /* ---- Owner tweak (2026-07-07): toggle tiles read NEUTRAL until selected ----\n     The .cps-tile group — visit-type tiles, the Need-a-ride toggle, the\n     White-Glove attestation, and the recommendation tiles — now defaults to a\n     gray hairline border. Yellow signals an ACTUAL choice, not a resting\n     default; selection (.cps-sel, above) still fills yellow. Day squares\n     (.cps-day-opt), time slots (.cps-slot), and service quick-picks\n     (.cps-svc-tile) are NOT .cps-tile, so they keep the yellow secondary-button\n     border unchanged. Hover stays subtle (gray border, white fill — never\n     yellow) so a tile only turns yellow once it's chosen. Disabled tiles keep\n     their own muted rule above. */\n  .cps-btn-ghost.cps-tile:not(.cps-sel) {\n    border-color: var(--cps-line);\n  }\n  @media (hover: hover) and (pointer: fine) {\n    .cps-btn-ghost.cps-tile:not(.cps-sel):not(:disabled):hover {\n      background: var(--cps-surface);\n      border-color: var(--cps-gray);\n      color: var(--cps-ink);\n    }\n  }\n\n  /* ---- Day squares (1b compact calendar week) ----\n     Every tile has IDENTICAL fixed dimensions, always (round 7 item 4 —\n     carried forward): a fixed 44px square showing only the date number, so\n     selecting a day or painting availability can never change any tile's\n     box. The per-tile \"Not available\" sublabel is RETIRED (1b) — the\n     unavailable state is the gray border + #c2c2c2 text, and the non-visual\n     signal is the aria-label (\"Monday, July 6, not available\") painted by\n     paintDayButtons. */\n  .cps-day-opt {\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    height: 44px;\n    min-width: 0;\n    padding: 0;\n    font-size: 14px;\n  }\n  /* Unavailable day tiles: gray border + muted number PLUS a hairline \"/\"\n     drawn corner-to-corner (bottom-left -> top-right) BEHIND the number, so a\n     closed day reads as closed at a glance. The slash is a background gradient\n     (not a pseudo-element), so the date number layers on top and stays fully\n     legible; the gradient points to-bottom-right and the painted band sits\n     perpendicular to it, i.e. along the \"/\" diagonal.\n     SPECIFICITY NOTE: these selectors must out-rank .cps-btn-ghost:disabled\n     (0,2,0) — its `background` SHORTHAND would otherwise reset background-image\n     and wipe the slash. So each selector carries three class/pseudo tokens\n     (.cps-day-opt + .cps-day-unavail + a pseudo), and background is set with\n     the LONGHAND background-color/background-image (never the shorthand). */\n  .cps-day-opt.cps-day-unavail,\n  .cps-day-opt.cps-day-unavail:hover,\n  .cps-day-opt.cps-day-unavail:disabled {\n    border-color: var(--cps-line);\n    color: #c2c2c2;\n    cursor: not-allowed;\n    background-color: var(--cps-surface);\n    background-image: linear-gradient(to bottom right,\n      transparent calc(50% - 0.75px),\n      #cfcfcf calc(50% - 0.75px),\n      #cfcfcf calc(50% + 0.75px),\n      transparent calc(50% + 0.75px));\n  }\n  /* The neutral \"pending\" state every day tile renders in while the\n     availability fetch is in flight — disabled, sublabel line reserved but\n     EMPTY (no \"Not available\" yet; the one-pass paint fills it).\n     Round 8 (item 3): a subtle shimmer/pulse (the SAME cps-skel-pulse the\n     round-7 service skeletons used, brand-neutral) so the grid reads as\n     INTENTIONALLY LOADING rather than as broken, unclickable dates. The\n     fixed tile geometry is untouched — .cps-day-opt keeps its min-height and\n     the reserved sublabel line, so nothing resizes when the verdict lands\n     (paintDayButtons removes .cps-day-pending in one pass). The date label\n     stays visible under the pulse (cleaner than hiding it). Static under\n     prefers-reduced-motion (fallback below). */\n  .cps-day-pending {\n    cursor: default;\n    /* Soft gray FILL (not just an opacity fade) so a loading tile can never\n       be confused with .cps-day-unavail's flat white + gray-border look. */\n    background: #E9E9E9;\n    border-color: var(--cps-line);\n    color: var(--cps-gray);\n    animation: cps-skel-pulse 1.2s ease-in-out infinite;\n  }\n  @media (prefers-reduced-motion: reduce) {\n    .cps-day-pending { animation: none; }\n  }\n\n  /* ---- Shared loading status line (loading-ux plan Task 1): the ONE\n     loading treatment for every \"waiting on data\" text in the widget.\n     Muted gray (.cps-hint base supplies size/color), with a three-dot\n     ellipsis animated via ::after so copy stays static (\"Checking available\n     days\" + animated \"...\"). Static single ellipsis under\n     prefers-reduced-motion. Loading is never red. ---- */\n  .cps-loading::after {\n    content: \"\";\n    animation: cps-loading-dots 1.5s steps(4, end) infinite;\n  }\n  @keyframes cps-loading-dots {\n    0%   { content: \"\"; }\n    25%  { content: \".\"; }\n    50%  { content: \"..\"; }\n    75%  { content: \"...\"; }\n  }\n  @media (prefers-reduced-motion: reduce) {\n    .cps-loading::after { content: \"…\"; animation: none; }\n  }\n\n  /* ---- Slot-chip skeletons (loading-ux plan Task 2): same footprint as a\n     real .cps-slot chip so the row doesn't jump when times land. ---- */\n  .cps-slot-skel {\n    display: inline-block;\n    width: 84px;\n    height: 44px;\n    border-radius: 8px;\n    background: #E9E9E9;\n    animation: cps-skel-pulse 1.2s ease-in-out infinite;\n  }\n  @media (prefers-reduced-motion: reduce) {\n    .cps-slot-skel { animation: none; }\n  }\n\n  /* ---- Week grid (1b compact calendar): ALWAYS 7 equal columns, Mon..Sun —\n     a real calendar row (weekday letters + 44px date squares). The compact\n     squares fit 7-up at every supported width, so the old 4-column mobile\n     reflow is retired. ---- */\n  .cps-days-grid {\n    display: grid;\n    grid-template-columns: repeat(7, minmax(0, 1fr));\n    gap: 6px;\n    text-align: center;\n  }\n\n  /* ---- Wait-appointment time slots: a wrapping row with proper spacing\n     between each time (owner request), same 8px rhythm as the day grid. ---- */\n  #cps-slots {\n    display: flex;\n    flex-wrap: wrap;\n    gap: 8px;\n    margin-top: 6px;\n  }\n\n  /* ---- Quick-pick service tiles (preview feedback round 5): one tappable\n     tile per bookable service, wrapping row, brand ghost-button styling,\n     44px+ tap targets via the .cps-btn floor. ---- */\n  .cps-svc-tiles {\n    display: flex;\n    flex-wrap: wrap;\n    gap: 8px;\n    margin-top: 6px;\n  }\n  .cps-svc-tile {\n    flex: 0 1 auto;\n    font-size: 14px;\n    padding: 10px 14px;\n  }\n\n  /* ---- Page-1 full-width doors (bottom of Popular services) ----\n     Owner ask (review round 2026-07-23): must read \"very clearly\" as its\n     own panel, not another ghost service tile — the stock .cps-btn-ghost\n     look (white fill, yellow border) is otherwise IDENTICAL to the bookable\n     tiles above it. Token-only changes, no font-weight (the typography\n     sweep pins every weight at 400):\n       1. background swaps from --cps-surface (white, same as the tiles) to\n          --cps-bg (#EEEEEE, the page's own background) — an unmistakable\n          fill shift using a token already in the palette, not a new color.\n       2. border-color drops from the tiles' --cps-yellow to a neutral\n          --cps-line hairline at rest, so it stops reading as \"one more\n          yellow-bordered selectable pill\" among the service tiles — same\n          neutral-card language already used for the insp-info panel / OTP\n          card elsewhere in this file. Width/style are left alone (still\n          the shared .cps-btn 2px solid box).\n       3. extra top margin clears it from the tile grid above so it reads\n          as its own section, not another row in it.\n     Hover is intentionally left to fall through to .cps-btn-ghost:hover\n     (fills solid --cps-yellow, border turns yellow) — the site's signature\n     inversion, unchanged, so tapping it still feels like every other\n     secondary button; only the RESTING look is distinct.\n     Shared class (owner feedback 2026-07-24): \"Shop for Tires\" moved out of\n     the pill row into its own full-width door, stacked directly above the\n     returning-work door — both doors share this exact treatment via\n     .cps-door / .cps-door-title / .cps-door-sub (formerly .cps-return-door*,\n     scoped to one door only; renamed, not restyled). */\n  .cps-door {\n    width:100%;\n    margin-top:20px;\n    padding:14px;\n    background:var(--cps-bg);\n    border-color:var(--cps-line);\n    display:flex;\n    flex-direction:column;\n    align-items:flex-start;\n    gap:4px;\n    text-align:left;\n  }\n  .cps-door-title { font-size:15px; }\n  /* gray-strong: these subtitles sit on the doors' --cps-bg fill, where\n     --cps-gray is 4.15:1 — below AA for text this size. */\n  .cps-door-sub { font-size:13px; color:var(--cps-gray-strong); }\n\n  /* ---- Non-bookable info tiles (VA Safety / Emissions inspection): live in\n     the Popular-services row so customers find them where they look, but they\n     never enter the basket — a tap opens an advisory panel instead. Styled\n     with a NEUTRAL gray outline (not the bookable tiles' yellow border) so\n     they never read as a selectable service; a tap that opens the panel\n     leaves a subtle filled/gray-border active state. ---- */\n  .cps-btn-ghost.cps-svc-tile--info {\n    border-color: var(--cps-line);\n    color: var(--cps-gray);\n  }\n  @media (hover: hover) and (pointer: fine) {\n    .cps-btn-ghost.cps-svc-tile--info:not([aria-pressed=\"true\"]):hover {\n      background: var(--cps-surface);\n      border-color: var(--cps-gray);\n      color: var(--cps-ink);\n    }\n  }\n  /* Panel-open state was #F7F7F7 — a 3% step off white that was invisible in\n     practice, so closing the panel looked like nothing happened. A definite\n     fill + darker border makes \"open\" unmistakable. */\n  .cps-btn-ghost.cps-svc-tile--info[aria-pressed=\"true\"],\n  .cps-btn-ghost.cps-svc-tile--info[aria-pressed=\"true\"]:hover {\n    background: #E6E6E6;\n    border-color: var(--cps-gray-strong);\n    color: var(--cps-ink);\n  }\n\n  /* ---- Shimmer/pulse keyframe (round 8 item 3): the brand-neutral loading\n     pulse. Round 7 used it on Popular-services SKELETON tiles; round 8 seeds\n     those tiles from CONFIG.popularServices so they render real from the\n     first paint (no service skeletons anymore), and this keyframe now drives\n     the DAY-GRID pending shimmer (.cps-day-pending above) — the one place\n     the customer waits on a live read. A gentle opacity pulse, disabled\n     under prefers-reduced-motion where it is declared. ---- */\n  @keyframes cps-skel-pulse {\n    0%, 100% { opacity: 1; }\n    50%      { opacity: 0.55; }\n  }\n\n  /* ---- Free-text inputs inside question/form cards (preview feedback\n     round 5, owner screenshot): an inline width:100% input with its own\n     padding + border overflows its card without border-box — pin every\n     .cps-field input (and the \"Something else\" input specifically) to the\n     card's box. ---- */\n  #cps-intake-other,\n  .cps-field input {\n    max-width: 100%;\n    box-sizing: border-box;\n  }\n\n  /* ---- Form fields ---- */\n  .cps-field { margin-bottom: 14px; }\n  .cps-field label {\n    display: block;\n    font-size: 12.5px;\n    font-weight: 400;\n    color: var(--cps-ink);\n    margin-bottom: 5px;\n  }\n\n  /* ---- Checkbox label rows (WG attest, ride, inspection add-on, intake\n     multi-choice) — the whole row is the clickable target, so it gets the\n     tap-target floor, not just the 16x16 checkbox itself. ---- */\n  .cps-check-row { min-height: 44px; box-sizing: border-box; }\n\n  .cps-textarea {\n    width: 100%;\n    box-sizing: border-box;\n    font-family: var(--cps-font);\n    font-size: 15px;\n    color: var(--cps-ink);\n    background: var(--cps-surface);\n    border: 1.5px solid var(--cps-line);\n    border-radius: var(--cps-radius-ctl);\n    padding: 11px 12px;\n    transition: border-color 0.12s;\n    resize: vertical;\n    min-height: 90px;\n  }\n  .cps-textarea:focus {\n    outline: none;\n    border-color: var(--cps-red);\n  }\n  .cps-hint {\n    font-size: 12px;\n    /* Small (<=16px) muted text — uses the AA-safe --cps-gray-strong, not\n       --cps-gray (v2 Task 13 finding 4; see :root for the contrast math). */\n    color: var(--cps-gray-strong);\n    margin-top: 6px;\n  }\n\n  /* ---- Send affordance for the concern textarea — a full-width secondary\n     button BELOW the box (owner pick, replacing the earlier in-box circle+arrow\n     that overlapped the typed text and read as bolted-on: it was the only\n     circle and only arrow anywhere in the widget). The AI-intake trigger stays\n     DISCOVERABLE, and the text box is now a clean, full-height writing space.\n     Ghost styling + the site's signature hover inversion come from\n     .cps-btn.cps-btn-ghost; this rule only adds the full-width block layout and\n     the gap above it. A typed-but-un-added concern is still folded into the\n     visit on Continue (foldConcernDraft) — this button is the path that ALSO\n     starts the clarifying questions. ---- */\n  .cps-concern-add {\n    display: block;\n    width: 100%;\n    margin-top: 10px;\n    font-size: 15px;\n  }\n\n  /* ---- OTP PIN entry (4 boxes, one digit each) ---- */\n  .cps-pin-row { display: flex; gap: 10px; margin-top: 6px; }\n  .cps-pin-box {\n    width: 48px;\n    height: 56px;\n    min-height: 44px;\n    min-width: 44px;\n    box-sizing: border-box;\n    font-family: var(--cps-font);\n    font-size: 22px;\n    font-weight: 400;\n    text-align: center;\n    color: var(--cps-ink);\n    background: var(--cps-surface);\n    border: 1.5px solid var(--cps-line);\n    border-radius: var(--cps-radius-ctl);\n    transition: border-color 0.12s;\n  }\n  .cps-pin-box:focus {\n    outline: none;\n    border-color: var(--cps-red);\n  }\n\n  /* ---- Stub step placeholder ---- */\n  .cps-stub {\n    padding: 32px 0 8px;\n    text-align: center;\n    font-size: 14px;\n    color: var(--cps-gray);\n  }\n\n  /* ---- Confirm step: review rows (label/value pairs, no price) ---- */\n  .cps-review {\n    background: var(--cps-surface);\n    border: 1.5px solid var(--cps-line);\n    border-radius: var(--cps-radius-ctl);\n    padding: 4px 14px;\n  }\n  .cps-review-row {\n    display: flex;\n    justify-content: space-between;\n    align-items: baseline;\n    gap: 14px;\n    padding: 11px 0;\n    border-bottom: 1px solid var(--cps-line);\n  }\n  .cps-review-row:last-child { border-bottom: none; }\n  .cps-review-label {\n    font-size: 12.5px;\n    font-weight: 400;\n    color: var(--cps-gray);\n    white-space: nowrap;\n  }\n  .cps-review-value {\n    flex: 1; /* 1b: rows gained a third (Edit-link) column — the value still fills the middle, right-aligned */\n    font-size: 14.5px;\n    color: var(--cps-ink);\n    text-align: right;\n  }\n\n  /* Grouped review sections (Concerns / Services) — a titled group whose items\n     each sit on their own line with an Edit link, replacing the old\n     one-label-per-row layout and the redundant Add-ons row. Logistics rows\n     (Day / Visit type / Vehicle / Inspection) keep .cps-review-row. */\n  .cps-review-group {\n    padding: 11px 0;\n    border-bottom: 1px solid var(--cps-line);\n  }\n  .cps-review-group-title {\n    font-size: 12.5px;\n    font-weight: 400;\n    color: var(--cps-gray);\n    text-transform: uppercase;\n    letter-spacing: 0.04em;\n    margin-bottom: 4px;\n  }\n  .cps-review-item {\n    display: flex;\n    justify-content: space-between;\n    align-items: baseline;\n    gap: 14px;\n    padding: 4px 0;\n  }\n  .cps-review-item .cps-review-value { text-align: left; }\n\n  /* ---- Spinner ---- */\n  .cps-spinner {\n    width: 18px;\n    height: 18px;\n    border: 2.5px solid rgba(6, 6, 6, 0.2);\n    border-top-color: var(--cps-ink);\n    border-radius: 50%;\n    display: inline-block;\n    animation: cps-spin 0.7s linear infinite;\n    vertical-align: -3px;\n    margin-right: 8px;\n  }\n  @keyframes cps-spin { to { transform: rotate(360deg); } }\n\n  /* ---- Indeterminate progress (intake pending — preview feedback round 2).\n     Brand yellow sweep on the page-gray track, slim (4px). CSS-only; under\n     prefers-reduced-motion the sweep is replaced by a static filled track\n     (state is still conveyed by the \"One moment...\" text + announce()). ---- */\n  .cps-progress {\n    height: 4px;\n    max-width: 320px;\n    background: var(--cps-bg);\n    border-radius: 2px;\n    overflow: hidden;\n  }\n  .cps-progress-bar {\n    height: 100%;\n    width: 40%;\n    background: var(--cps-yellow);\n    border-radius: 2px;\n    animation: cps-progress-slide 1.2s ease-in-out infinite;\n  }\n  @keyframes cps-progress-slide {\n    0%   { transform: translateX(-100%); }\n    100% { transform: translateX(350%); }\n  }\n  @media (prefers-reduced-motion: reduce) {\n    .cps-progress-bar { animation: none; width: 100%; }\n  }\n\n  /* ---- Success ---- */\n  .cps-success {\n    text-align: center;\n    padding: 32px 16px 16px;\n  }\n  .cps-success .cps-circle {\n    width: 66px;\n    height: 66px;\n    border-radius: 50%;\n    background: rgba(27, 138, 90, 0.12);\n    color: var(--cps-ok);\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    font-size: 28px;\n    font-weight: 400;\n    margin: 0 auto 16px;\n  }\n  .cps-success h3 {\n    margin: 0 0 8px;\n    font-size: 21px;\n    font-weight: 400;\n    color: var(--cps-ink);\n    text-transform: none;\n    letter-spacing: 0;\n  }\n  .cps-success p {\n    margin: 0 auto 6px;\n    font-size: 14.5px;\n    /* Small (<=16px) muted text — uses the AA-safe --cps-gray-strong, not\n       --cps-gray (v2 Task 13 finding 4; see :root for the contrast math). */\n    color: var(--cps-gray-strong);\n    max-width: 380px;\n    line-height: 1.5;\n  }\n\n  /* ============================================================================\n     RESPONSIVE — small phones (spec §10). Desktop (>480px) is the existing\n     centered card, untouched above this block. Below 480px the modal goes\n     near-full-screen: header + stepper stay visible, the body region\n     (#cps-bodyc) is the sole scroll container, and the footer CTA docks to\n     the bottom of the modal with safe-area padding so it clears notches/\n     home-indicators on notched phones.\n\n     Scroll-container contract: .cps-body is the ONLY thing that scrolls on\n     mobile. .cps-modal is sized to the viewport (100dvh) with\n     `display:flex;flex-direction:column`; .cps-head/.cps-steps/.cps-foot\n     are `flex:0 0 auto` (fixed size) and .cps-body is `flex:1 1 auto;\n     overflow-y:auto` (the only item that grows/scrolls). Because .cps-foot\n     is a normal flex sibling — not position:fixed/absolute — it always\n     reserves its own space below .cps-body; there's no overlap to guard\n     against with synthetic bottom-padding on .cps-body, so none is added.\n     visualViewport (below, feature-detected) only needs to nudge\n     .cps-body's scroll position when the soft keyboard opens, not touch\n     this padding contract.\n     ============================================================================ */\n  @media (max-width: 480px) {\n    .cps-overlay {\n      padding: 0;\n      align-items: stretch;\n    }\n    .cps-modal {\n      max-width: 100%;\n      height: 100vh;   /* fallback for browsers without dvh support */\n      height: 100dvh;\n      /* .cps-modal is content-box by default and carries a 4px top border\n         (desktop rule above); on mobile the height is set explicitly via\n         100vh/100dvh, so with content-box that 4px border adds ON TOP of\n         the viewport-sized height — 4px taller than the viewport, clipping\n         the sticky footer. border-box folds the border into the declared\n         height instead. */\n      box-sizing: border-box;\n      margin: 0;\n      border-radius: 0;\n      border-top-left-radius: 0;\n      border-top-right-radius: 0;\n      display: flex;\n      flex-direction: column;\n      animation: none;\n    }\n    .cps-head {\n      padding: calc(14px + env(safe-area-inset-top)) 16px 12px;\n      flex: 0 0 auto;\n    }\n    .cps-steps {\n      padding: 12px 16px 0;\n      flex: 0 0 auto;\n    }\n    .cps-body {\n      padding: 16px 16px 8px;\n      flex: 1 1 auto;\n      overflow-y: auto;\n      -webkit-overflow-scrolling: touch;\n    }\n    .cps-foot {\n      /* Pinned to the modal bottom by the flex column layout above (.cps-body\n         is the only flexible/scrolling item) — no position:sticky needed\n         since .cps-foot never sits inside the scrolling region. */\n      flex: 0 0 auto;\n      background: var(--cps-bg);\n      padding: 12px 16px calc(14px + env(safe-area-inset-bottom));\n      border-top: 1px solid var(--cps-line);\n    }\n  }";
   (document.head || document.documentElement).appendChild(st);
 })();
 
@@ -20,6 +20,25 @@
    ============================================================================ */
 const CONFIG = {
   shopName:             "Cardinal Plaza Shell",
+  /* shop — the shop's own identity, shown to the customer.
+
+     Why this exists: the flow told customers to "call us" in three places and
+     never gave them a number, and the Success screen never said WHERE to
+     bring the car. Both are trust holes for a first-time booker.
+
+     These are CUSTOMER-FACING strings: the shop's real public line and
+     street address, confirmed by the owner 2026-08-05. Never substitute a
+     personal or test number here. Every consumer still degrades gracefully
+     if a field is blanked (see shopPhoneSuffix / shopFooterHtml): the copy
+     falls back to "please call us" and the Success screen omits the call
+     line rather than rendering an empty or placeholder value. */
+  shop: {
+    phoneDisplay:       "(703) 451-6232",
+    phoneHref:          "+17034516232",
+    addressLine:        "8334 Old Keene Mill Rd",
+    cityStateZip:       "Springfield, VA 22152",
+    mapsUrl:            "https://maps.google.com/?q=Cardinal+Plaza+Shell+8334+Old+Keene+Mill+Rd+Springfield+VA+22152",
+  },
   logoUrl:              "https://irp.cdn-website.com/4c6dc4d9/dms3rep/multi/logo.png",
   shopGuid:             "18d6da60-a83e-4143-b00b-535afb2645b1",
   timeZone:             "America/New_York",
@@ -42,6 +61,11 @@ const CONFIG = {
   intakeMinQuestions:   3,
   intakeMaxQuestions:   10,
   intakeTimeoutMs:      20000,         // live intake fetch abort bound — past it, honest degrade (never a hang)
+  /* fetchTimeoutMs — the abort bound cpsFetch applies to every OTHER live
+     POST (availability, OTP send/verify, vehicle pickers, create). Before
+     this, only the intake was bounded and a stalled connection could leave a
+     spinner or a disabled button up for minutes. */
+  fetchTimeoutMs:       20000,
   avgMilesPerDay:       37,
   historyRecs:          true,          // Layer B kill switch: false = Extras uses the generic matrix only
   maintenanceMatrix:    [],            // populated from settings at runtime
@@ -468,7 +492,11 @@ function resetBooking() {
 window.resetBooking = resetBooking;
 
 /* Step labels — displayed in the progress stepper + caption line (1b) */
-const STEPS = ["Services", "Time", "Verify", "Vehicle", "Extras", "Review"];
+/* Step 5 was "Extras" in the stepper, "recommendations" in the caption hint,
+   and "Recommended for your vehicle" as its heading — three names for one
+   step, and "Extras" was never explained anywhere the customer could see it.
+   All three now say the same thing. */
+const STEPS = ["Services", "Time", "Verify", "Vehicle", "Recommended", "Review"];
 
 /* Stepper caption "next" hints (1b design handoff): the caption reads
    "STEP 2 OF 6 · TIME · NEXT: VERIFY YOUR NUMBER" (uppercased in CSS). Plain
@@ -484,7 +512,7 @@ const NEXT_HINT_FOR_STEP = [
   "Next: pick a time",
   "Next: verify your number",
   "Next: your vehicle",
-  "Next: recommendations",
+  "Next: recommended for your vehicle",
   "Next: review",
 ];
 
@@ -907,8 +935,43 @@ function mount() {
      lives in the White Glove section card now, so Esc has exactly one job.) */
   document.addEventListener("keydown", function(e) {
     if (e.key !== "Escape") return;
+    /* Only act while the overlay is actually open — this listener is on
+       document and used to run on every Escape press anywhere on the host
+       page, closing nothing but doing the work anyway. */
+    var o = document.getElementById("cps-overlay");
+    if (!o || !o.classList.contains("cps-open")) return;
     if (S.tirePanel) { closeTirePanel(); return; }
     cardinalHideBooking();
+  });
+
+  /* FOCUS TRAP. The shell declares role="dialog" aria-modal="true" but Tab
+     walked straight out of it into the dimmed host page behind the overlay —
+     a keyboard or screen-reader customer could end up "typing" into a page
+     they cannot see, with no way to tell they had left the booking. Wrap
+     focus at both ends instead. */
+  document.addEventListener("keydown", function(e) {
+    if (e.key !== "Tab") return;
+    var overlay = document.getElementById("cps-overlay");
+    if (!overlay || !overlay.classList.contains("cps-open")) return;
+    var focusables = overlay.querySelectorAll(
+      'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    );
+    var visible = [];
+    for (var i = 0; i < focusables.length; i++) {
+      var el = focusables[i];
+      // offsetParent is null for display:none (e.g. the hidden address fallback)
+      if (el.offsetParent !== null || el === document.activeElement) visible.push(el);
+    }
+    if (!visible.length) return;
+    var first = visible[0];
+    var last = visible[visible.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
   });
 
   /* visualViewport (spec §10, mobile only) — feature-detected: jsdom (the
@@ -965,6 +1028,84 @@ function announce(msg) {
   if (live) live.textContent = msg;
 }
 window.announce = announce;
+
+/* ---- One-shot step notice ---------------------------------------------------
+   Three paths reroute the customer to an earlier step (slot taken at booking
+   time, session timeout, a tech item invalidating "wait at the shop"). All of
+   them used to explain themselves ONLY through announce() — the visually
+   hidden aria-live region — so a sighted customer was silently teleported
+   backwards with no idea why. setNotice stores the message; renderers paint
+   it via stepNoticeHtml() at the top of the step, and takeNotice() consumes it so
+   it shows exactly once and never resurfaces on a later repaint. */
+let _cpsNotice = "";
+function setNotice(msg) {
+  _cpsNotice = String(msg || "");
+  announce(_cpsNotice); // still announced — this ADDS a visible channel, it does not replace the a11y one
+}
+window.setNotice = setNotice;
+
+function takeNotice() {
+  var n = _cpsNotice;
+  _cpsNotice = "";
+  return n;
+}
+window.takeNotice = takeNotice;
+
+/* stepNoticeHtml() -> the banner markup for a pending notice, or "".
+   role="status" so assistive tech that missed the announce still gets it.
+   Named stepNoticeHtml, not noticeHtml, because renderHelp already has a
+   local `noticeHtml` for the intake's own inline notice. */
+function stepNoticeHtml() {
+  var n = takeNotice();
+  if (!n) return "";
+  return '<p class="cps-notice" role="status">' + esc(n) + '</p>';
+}
+window.stepNoticeHtml = stepNoticeHtml;
+
+/* shopPhoneSuffix() -> " at (703) 555-0123" | ""
+   Lets "please call us" copy carry the number when one is configured and read
+   naturally when one is not, so no string ever renders a dangling "at ." or a
+   placeholder number. See CONFIG.shop. */
+function shopPhoneSuffix() {
+  var p = (CONFIG.shop && CONFIG.shop.phoneDisplay || '').trim();
+  return p ? ' at ' + p : '';
+}
+window.shopPhoneSuffix = shopPhoneSuffix;
+
+/*
+  _cpsShowStepError(errElId, message, focusFieldId) — the shared "you can't
+  continue yet, and here is why" presenter for in-step gates.
+
+  Writing the message alone was not enough: the identity/vehicle error lines
+  render at the BOTTOM of a form that is taller than a phone screen, so a
+  customer who tapped Continue with an empty name field saw the button do
+  nothing while the explanation sat off-screen below. This scrolls the message
+  into view, moves focus to the field it is about (which also opens the right
+  keyboard on mobile), and announces it for screen readers.
+
+  focusFieldId is optional — pass null when the problem is a choice rather
+  than a field (e.g. no vehicle picked from the garage list).
+*/
+function _cpsShowStepError(errElId, message, focusFieldId) {
+  var errEl = document.getElementById(errElId);
+  if (errEl) {
+    errEl.textContent = message;
+    if (typeof errEl.scrollIntoView === 'function') {
+      errEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+  }
+  var field = focusFieldId ? document.getElementById(focusFieldId) : null;
+  /* The street-address input is display:none whenever Google Places is
+     attached; focus its visible replacement instead. */
+  if (field && focusFieldId === 'cps-cust-addr1' && field.style.display === 'none') {
+    field = document.getElementById('cps-addr-ac') || field;
+  }
+  if (field && typeof field.focus === 'function') {
+    try { field.focus({ preventScroll: false }); } catch (e) { field.focus(); }
+  }
+  announce(message);
+}
+window._cpsShowStepError = _cpsShowStepError;
 
 /* _cpsLastStep — tracks the S.step value as of the last render() call, so
    render() can tell a genuine step CHANGE apart from a same-step repaint
@@ -1047,6 +1188,16 @@ function render() {
   if (stepChanged) {
     h2.setAttribute("tabindex", "-1");
     h2.focus();
+    /* Scroll the new step back to the top. On mobile the h2 lives in
+       .cps-head, OUTSIDE the scrolling .cps-body — so focusing it never moved
+       the scroll container, and advancing from a step you had scrolled down
+       (a long Services page, say) landed you partway down the next step with
+       its title off-screen. Desktop scrolls the overlay instead, so reset
+       both. */
+    var bodyC = document.getElementById("cps-bodyc");
+    if (bodyC) bodyC.scrollTop = 0;
+    var overlayEl = document.getElementById("cps-overlay");
+    if (overlayEl) overlayEl.scrollTop = 0;
   }
 }
 
@@ -1542,6 +1693,40 @@ window.intakeDegradeResult = intakeDegradeResult;
   clears the latch + pending paint, and the next submit works. The mock
   path (no backendUrl) keeps mockIntake untouched.
 */
+/*
+  cpsFetch(url, opts, timeoutMs) -> Promise<Response>
+  Every live POST goes through here so none of them can hang the UI.
+
+  Only the AI intake used to be time-bounded; availability, OTP send/verify
+  and the final create called fetch() bare. On a stalled connection that left
+  the customer staring at a shimmering "Checking available days", a dead
+  "Text me a code" button, or a "Booking..." state for as long as the browser
+  was willing to wait (minutes) — the friendly failure copy each of those
+  paths already owns only ever appeared once the fetch finally rejected.
+
+  Same discipline as the original intake bound: typeof-guarded (a browser
+  without AbortController keeps the unbounded behavior rather than throwing),
+  and the timer is cleared on ANY settle so it can never fire into a finished
+  request. An abort rejects, which lands in each caller's existing .catch and
+  therefore its existing calm error state — no new failure surface.
+*/
+function cpsFetch(url, opts, timeoutMs) {
+  var ms = timeoutMs || CONFIG.fetchTimeoutMs || 20000;
+  var controller = (typeof AbortController === 'function') ? new AbortController() : null;
+  var timer = null;
+  var options = Object.assign({}, opts || {});
+  if (controller) {
+    options.signal = controller.signal;
+    timer = setTimeout(function() { controller.abort(); }, ms);
+  }
+  function clear() { if (timer !== null) { clearTimeout(timer); timer = null; } }
+  return fetch(url, options).then(
+    function(res) { clear(); return res; },
+    function(err) { clear(); throw err; }
+  );
+}
+window.cpsFetch = cpsFetch;
+
 function intakeProvider(history) {
   if (!(CONFIG.backendUrl && CONFIG.AI_ON)) {
     return Promise.resolve(mockIntake(history));
@@ -1558,17 +1743,13 @@ function intakeProvider(history) {
     honeypot:  hp ? hp.value : '',
     wrapUp:    S.intake.wrapUp === true
   });
-  /* Timeout bound — typeof-guarded (a browser without AbortController just
-     keeps the unbounded pre-fix behavior rather than throwing); the timer
-     is cleared on ANY settle so it can never fire into a finished round. */
-  var controller = (typeof AbortController === 'function') ? new AbortController() : null;
-  var timer = null;
-  if (controller) {
-    timer = setTimeout(function() { controller.abort(); }, CONFIG.intakeTimeoutMs || 20000);
-  }
+  /* Timeout bound via the shared cpsFetch (this round's own
+     CONFIG.intakeTimeoutMs, which is separate from the general
+     fetchTimeoutMs — an AI turn is allowed to take longer than a slot
+     lookup). An abort rejects into the catch below, i.e. the honest degrade,
+     exactly as before. */
   var opts = { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: body };
-  if (controller) opts.signal = controller.signal;
-  return fetch(CONFIG.backendUrl, opts)
+  return cpsFetch(CONFIG.backendUrl, opts, CONFIG.intakeTimeoutMs || 20000)
     .then(function(res) {
       if (!res || !res.ok) throw new Error('intake: non-ok response');
       return res.json();
@@ -1580,10 +1761,6 @@ function intakeProvider(history) {
     .catch(function(err) {
       console.warn('intakeProvider: live intake failed — degrading to a plain concern entry —', err);
       return intakeDegradeResult();
-    })
-    .then(function(result) {
-      if (timer !== null) clearTimeout(timer);
-      return result;
     });
 }
 window.intakeProvider = intakeProvider;
@@ -2190,7 +2367,7 @@ window._cpsGuardHook = function() {
       S.sched.slot        = '';
       S.sched.validatedLane = ''; // the picked day is cleared; drop its validated-lane stamp too (Task 1)
       S.sched.wgAttested = false;
-      announce("Your visit type changed because of what you added. Please re-pick a time.");
+      setNotice("Your visit type changed because of what you added. Please re-pick a time.");
       S._returnTo = returnAfterReroute; // preserve the no-re-OTP return when past Verify (Task 2)
       /* Route to Time whenever we're not already there — covers both "past
          Time" (steps 2-5, the common bidirectional-guard case) and "on Help
@@ -2916,7 +3093,12 @@ function renderHelp(body, foot, h2) {
     if (S.inspection.types.safety || S.inspection.types.emissions) {
       inspNoticeHtml =
         '<p class="cps-hint" id="cps-insp-hint" role="status" style="margin:8px 0 0">' +
-          esc("Added as a weekday add-on (drop-off or White Glove) - not available Saturdays. You'll pick your time next.") +
+          /* "not available Saturdays" understated the rule: eligibility is
+             weekdays only (dowOfYmd <= 5), so Sundays are excluded too — and
+             light-lane drop-offs ARE bookable on Sundays, so a customer could
+             legitimately pick one and then hit an ineligibility they had been
+             told applied only to Saturdays. */
+          esc("Added as a weekday add-on (drop-off or White Glove) - not available on weekends. You'll pick your time next.") +
         '</p>';
     }
   } else if (S.inspectionInfo) {
@@ -3145,7 +3327,10 @@ function renderHelp(body, foot, h2) {
       </div>
       <button type="button" class="cps-btn cps-btn-ghost cps-concern-add" id="cps-concern-send"
         onclick="window._cpsConcernSubmit()">Add &amp; answer a couple questions</button>
-      <p class="cps-hint">Prefer not to? Just continue, and we'll note your concern as-is.</p>
+      <!-- The Enter/Shift+Enter behaviour was described in a code comment as
+           "documented in the hint" but never actually appeared in it, so
+           pressing Enter for a second line launched the AI round instead. -->
+      <p class="cps-hint">Press Enter to send, or Shift and Enter for a new line. Prefer not to? Just continue, and we'll note your concern as-is.</p>
       ${noticeHtml}
       ${followUpHtml}
       ${pendingHtml}
@@ -3153,7 +3338,8 @@ function renderHelp(body, foot, h2) {
     </div>
     ${tilesHtml}
     ${basketHtml}
-    ${inspectionOnlyHtml()}`;
+    ${inspectionOnlyHtml()}
+    ${S.basket.length === 0 && inspectionOnlyHtml() === '' ? '<p class="cps-hint" id="cps-help-gate-hint" style="text-align:center;margin-top:14px">Add a service or describe a concern to continue.</p>' : ''}`;
 
   /* Inspection-only basket: nothing bookable exists (see
      inspectionOnlyHtml's doc comment) — there is no booking path from this
@@ -3172,7 +3358,7 @@ function renderHelp(body, foot, h2) {
     var helpCtaLabel = S._returnTo === 5 ? 'Back to review' : 'Continue to time';
     foot.innerHTML = `
       <button class="cps-btn cps-btn-primary" style="flex:1" onclick="window._cpsConcernNext()" id="cps-help-next"
-        ${S.basket.length === 0 ? 'disabled title="Add at least one service or concern"' : ""}>
+        ${S.basket.length === 0 ? 'disabled aria-describedby="cps-help-gate-hint" title="Add at least one service or concern"' : ""}>
         ${helpCtaLabel}
       </button>`;
   }
@@ -3180,6 +3366,13 @@ function renderHelp(body, foot, h2) {
   /* --- Wire up UI handlers --- */
   window._cpsConcernNext = function() {
     if (_cpsMidQA() && !S.intake.guard) { S.intake.guard = 'continue'; render(); return; }
+    /* An intake round already in flight owns this draft. Without this guard,
+       Continue folded the draft into the basket as a concern AND advanced,
+       and then the round landed and applyIntakeResult added a SECOND entry
+       for the same words — two near-identical lines on the review screen and
+       in the advisor's concerns field. Treat it like mid-Q&A: show the guard
+       notice, let the round finish. */
+    if (S.intake.pending && !S.intake.guard) { S.intake.guard = 'continue'; render(); return; }
     /* Never silently drop an un-submitted concern draft: fold it into the
        visit as a plain concern first (NO forced AI Q&A — the button/Enter are
        the paths that start intake), then advance. Owner feedback: it was too
@@ -3937,7 +4130,7 @@ function availabilityProvider(params) {
     services: (params && params.services) || [],
     honeypot: hp ? hp.value : ''
   });
-  return fetch(CONFIG.backendUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: body })
+  return cpsFetch(CONFIG.backendUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: body })
     .then(function(res) {
       if (!res || !res.ok) throw new Error('availability: non-ok response');
       return res.json();
@@ -3986,6 +4179,21 @@ function _cpsAvailabilityKey(params) {
     ((params && params.services) || []).join(","),
   ].join("|");
 }
+
+/* _cpsAvailabilityParams() — the params the CURRENT view would fetch with.
+   drawSlots builds the same object for its request; comparing the two keys is
+   how an in-flight response tells whether it still describes what the
+   customer is looking at (see the view guard in drawSlots). Kept here, beside
+   the key builder, so the two definitions can never drift apart. */
+function _cpsAvailabilityParams() {
+  return {
+    date: weekRequestAnchor(S.timeAnchor),
+    handling: S.sched.handling,
+    lane: S.lane,
+    services: S.services,
+  };
+}
+window._cpsAvailabilityParams = _cpsAvailabilityParams;
 
 /*
   preloadAvailability() — preview feedback round 3: kick off the availability
@@ -4281,7 +4489,7 @@ function loadLiveServices() {
   try {
     var hp = document.getElementById('cps-hp');
     var body = JSON.stringify({ action: 'config', honeypot: hp ? hp.value : '' });
-    return fetch(CONFIG.backendUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: body })
+    return cpsFetch(CONFIG.backendUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: body })
       .then(function(res) {
         if (!res || !res.ok) throw new Error('config: non-ok response');
         return res.json();
@@ -4482,7 +4690,12 @@ function renderTime(body, foot, h2) {
     var key = addDaysYmd(weekStart, i);
     var dayNum = parseInt(key.slice(8), 10);
     var sel = S.sched.date === key ? " cps-sel" : "";
+    /* aria-pressed ships in the initial markup as well as in paintDayButtons:
+       the tiles render (pending) before availability lands, and a day tile
+       with no pressed state at all is invisible-as-a-toggle to a screen
+       reader for that whole window. */
     dayBtns += '<button class="cps-btn cps-btn-ghost cps-day-opt cps-day-pending' + sel + '" data-date="' + key + '" disabled aria-disabled="true" ' +
+      'aria-pressed="' + (sel ? 'true' : 'false') + '" ' +
       'aria-label="' + esc(humanDayLabel(key)) + '" ' +
       'onclick="window.pickDate(\'' + key + '\')">' + dayNum + '</button>';
   }
@@ -4570,6 +4783,7 @@ function renderTime(body, foot, h2) {
   }
 
   body.innerHTML = `
+    ${stepNoticeHtml()}
     <p class="cps-steptitle">When works for you?</p>
     <p class="cps-stepsub">Choose how you want to handle the visit, then a day.</p>
     ${tcPrefHtml}
@@ -4699,6 +4913,7 @@ function paintDayButtons(body, days) {
          selected — the reconcile below clears S.sched.date first, and this
          strip is the belt-and-braces DOM guarantee. */
       btn.classList.remove("cps-sel");
+      btn.setAttribute("aria-pressed", "false");
       btn.setAttribute("aria-label", humanDayLabel(key) + ", not available");
     } else {
       btn.disabled = false;
@@ -4707,6 +4922,11 @@ function paintDayButtons(body, days) {
       /* Round 7 (item 4): selection is COLOR only — every tile keeps
          identical dimensions whatever is selected or painted. */
       btn.classList.toggle("cps-sel", key === S.sched.date);
+      /* ...and COLOR ONLY is invisible to a screen reader. Every other toggle
+         in the widget carries aria-pressed; the day and slot pickers — the
+         two most important choices in the flow — were the exception, so a
+         non-sighted customer could not tell which day was chosen. */
+      btn.setAttribute("aria-pressed", key === S.sched.date ? "true" : "false");
       btn.setAttribute("aria-label", humanDayLabel(key));
     }
   }
@@ -4810,7 +5030,10 @@ function paintAvailability(body, wrap, handling, days) {
      now pins value to strict HH:MM — defense in depth, review finding). */
   wrap.innerHTML = slots.map(function(slot) {
     var sel = S.sched.slot === slot.value ? " cps-sel" : "";
-    return '<button type="button" class="cps-btn cps-btn-ghost cps-slot' + sel + '" data-t="' + esc(slot.value) + '">' +
+    /* aria-pressed: the picked time was conveyed by yellow fill alone, which
+       a screen reader cannot see (matches the day tiles' fix). */
+    return '<button type="button" class="cps-btn cps-btn-ghost cps-slot' + sel + '" data-t="' + esc(slot.value) + '"' +
+      ' aria-pressed="' + (sel ? 'true' : 'false') + '">' +
       esc(slot.label) + '</button>';
   }).join("");
   var slotBtns = wrap.querySelectorAll('.cps-slot');
@@ -4863,7 +5086,7 @@ function drawSlots(body) {
      first bookable day (weekRequestAnchor) — the relay rejects past anchors;
      paintDayButtons maps the response onto the Mon..Sun grid by ymd, so the
      un-covered leading days simply render "Not available". */
-  var params = { date: weekRequestAnchor(S.timeAnchor), handling: handling, lane: S.lane, services: S.services };
+  var params = _cpsAvailabilityParams();
   var key = _cpsAvailabilityKey(params);
   var reqMonday = S.timeAnchor; // snapshot the visible week's Monday for prefetchNextWeek (keys the FOLLOWING week to exactly what its drawSlots will request)
 
@@ -4916,11 +5139,24 @@ function drawSlots(body) {
   return source
     .then(function(result) {
       var days = result.days || {};
-      availCachePut(key, days);
+      availCachePut(key, days); // cache regardless — the data is valid for ITS key even if the view moved
+      /* VIEW GUARD. The key encodes the week + handling + lane this request
+         was made for. Apps Script responses can arrive out of order, so
+         without this check a slow fetch for last week could land after the
+         customer navigated and repaint the CURRENT grid with the OLD week's
+         day map: no visible date matches, so every tile paints "not
+         available", the loading notice clears, and reconcileSelectedDay can
+         wipe the chosen day with "that day just filled up" — a fully dead
+         calendar with no error and no spinner. If the view has moved on,
+         this response is simply not ours to paint. */
+      if (_cpsAvailabilityKey(_cpsAvailabilityParams()) !== key) return;
       paintAvailability(body, wrap, handling, days);
       prefetchNextWeek(params, reqMonday);
     })
     .catch(function() {
+      // Same guard on the failure path: never paint a retry state over a view
+      // this request no longer describes.
+      if (_cpsAvailabilityKey(_cpsAvailabilityParams()) !== key) return;
       setDayNoticeLoading(false);
       if (wrap && handling === "wait") {
         wrap.innerHTML =
@@ -5094,7 +5330,7 @@ function fetchVehicleHistory() {
     year: S.vehicle.year, make: S.vehicle.make, model: S.vehicle.model,
     honeypot: hp ? hp.value : ''
   });
-  return fetch(CONFIG.backendUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: body })
+  return cpsFetch(CONFIG.backendUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: body })
     .then(function(res) { if (!res || !res.ok) throw new Error('history: non-ok response'); return res.json(); })
     .then(function(data) {
       if (!data || data.ok !== true || !Array.isArray(data.history)) throw new Error('history: malformed response shape');
@@ -5164,7 +5400,7 @@ function fetchRecommendations() {
     mileage: parseInt(S.vehicle.mileage, 10) || null,
     honeypot: hp ? hp.value : ''
   });
-  return fetch(CONFIG.backendUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: body })
+  return cpsFetch(CONFIG.backendUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: body })
     .then(function(res) { if (!res || !res.ok) throw new Error('recommendations: non-ok'); return res.json(); })
     .then(function(data) {
       if (!data || data.ok !== true || !Array.isArray(data.due)) throw new Error('recommendations: malformed');
@@ -5181,6 +5417,22 @@ function isValidPhone(phone) {
   var digits = String(phone || "").replace(/\D/g, "");
   return digits.length === 10;
 }
+
+/* formatPhoneDisplay(phone) -> "(703) 555-0123"
+   Progressive US formatting for whatever digits exist so far, so the field
+   formats AS the customer types (the placeholder promised a shape the input
+   never produced) and a stored/echoed number never renders as raw digits.
+   Non-digits are dropped and anything past 10 digits is ignored — the value
+   still round-trips through isValidPhone/normalizePhone, both of which strip
+   punctuation. An empty string stays empty (never "(" ). */
+function formatPhoneDisplay(phone) {
+  var d = String(phone || "").replace(/\D/g, "").slice(0, 10);
+  if (!d) return "";
+  if (d.length < 4) return "(" + d;
+  if (d.length < 7) return "(" + d.slice(0, 3) + ") " + d.slice(3);
+  return "(" + d.slice(0, 3) + ") " + d.slice(3, 6) + "-" + d.slice(6);
+}
+window.formatPhoneDisplay = formatPhoneDisplay;
 
 /* maskPhone(phone) -> "(xxx) xxx-1234" — plain ASCII mask, last 4 digits
    visible. No emoji / unicode bullets per the design contract. */
@@ -5310,7 +5562,7 @@ function otpSend(phone) {
     phone:    String(phone),
     honeypot: hp ? hp.value : ''
   });
-  return fetch(CONFIG.backendUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: body })
+  return cpsFetch(CONFIG.backendUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: body })
     .then(function(res) {
       if (!res || !res.ok) throw new Error('otpSend: non-ok response');
       return res.json();
@@ -5366,7 +5618,7 @@ function otpVerify(code) {
     concerns:  buildConcerns(),
     honeypot:  hp ? hp.value : ''
   });
-  return fetch(CONFIG.backendUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: body })
+  return cpsFetch(CONFIG.backendUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: body })
     .then(function(res) {
       if (!res || !res.ok) throw new Error('otpVerify: non-ok response');
       return res.json();
@@ -5392,6 +5644,68 @@ function otpVerify(code) {
 }
 window.otpVerify = otpVerify;
 
+/* ---- Resend cooldown ------------------------------------------------------
+   Module-scoped (not on S): this is presentation timing, not booking state,
+   and it must survive renderVerify re-running without resetting. A send sets
+   _cpsResendReadyAt; the link paints "Resend code in Ns" and stays disabled
+   until then. The ticker is torn down whenever the row leaves the DOM so a
+   closed/advanced widget never keeps a timer alive. */
+const CPS_RESEND_COOLDOWN_MS = 30000;
+let _cpsResendReadyAt = 0;
+let _cpsResendTimer = null;
+
+function _cpsResendRemaining() {
+  var ms = _cpsResendReadyAt - Date.now();
+  return ms > 0 ? Math.ceil(ms / 1000) : 0;
+}
+window._cpsResendRemaining = _cpsResendRemaining;
+
+function _cpsStartResendCooldown() {
+  _cpsResendReadyAt = Date.now() + CPS_RESEND_COOLDOWN_MS;
+  _cpsPaintResendLink();
+}
+window._cpsStartResendCooldown = _cpsStartResendCooldown;
+
+function _cpsStopResendTicker() {
+  if (_cpsResendTimer) { clearInterval(_cpsResendTimer); _cpsResendTimer = null; }
+}
+
+/* Paints the resend link's label + disabled state and keeps a 1s ticker
+   running only while a cooldown is actually pending. */
+/* _cpsSetOtpControlsBusy(busy) — every control that dispatches an OTP call
+   (Verify/Text me a code, Resend, Change number) goes disabled together for
+   the round trip. They used to stay looking live while S.otpBusy silently
+   swallowed the taps, so the screen read as unresponsive. Resend's own
+   cooldown is re-applied on release so this never revives it early. */
+function _cpsSetOtpControlsBusy(busy) {
+  ["cps-verify-primary", "cps-resend", "cps-change-number"].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.disabled = !!busy;
+  });
+  if (!busy) _cpsPaintResendLink();
+}
+window._cpsSetOtpControlsBusy = _cpsSetOtpControlsBusy;
+
+function _cpsPaintResendLink() {
+  var el = document.getElementById("cps-resend");
+  if (!el) { _cpsStopResendTicker(); return; }
+  var left = _cpsResendRemaining();
+  if (left > 0) {
+    el.textContent = "Resend code in " + left + "s";
+    el.disabled = true;
+    el.style.opacity = "0.6";
+    el.style.cursor = "default";
+    if (!_cpsResendTimer) _cpsResendTimer = setInterval(_cpsPaintResendLink, 1000);
+  } else {
+    el.textContent = "Resend code";
+    el.disabled = false;
+    el.style.opacity = "";
+    el.style.cursor = "";
+    _cpsStopResendTicker();
+  }
+}
+window._cpsPaintResendLink = _cpsPaintResendLink;
+
 function renderVerify(body, foot, h2) {
   h2.textContent = "Verify your number";
 
@@ -5401,18 +5715,58 @@ function renderVerify(body, foot, h2) {
      see window._cpsPhoneInput below for where that draft is written. */
   var phoneDigits = codeSent ? (_otpPhoneBySession[S.otp.sessionId] || "") : S.otp.phone;
 
+  /* ALREADY VERIFIED. Reached by walking Back from Vehicle, or via the
+     stepper. This screen used to fall through to the pre-send state, whose
+     only forward control ("Text me a code") sends a SECOND real SMS and
+     resets S.otp.verified/account — so a verified customer who tapped Back
+     was stranded and had to re-verify to get out. Give them the plain
+     "you're done here, keep going" door; Change number stays as the explicit
+     (and clearly labelled) way to start over on a different phone. */
+  if (S.otp.verified) {
+    var verifiedNumber = formatPhoneDisplay(_otpPhoneBySession[S.otp.sessionId] || S.otp.phone);
+    body.innerHTML = `
+      <p class="cps-steptitle">Verify your number</p>
+      <p class="cps-stepsub">This number is confirmed. You can keep going.</p>
+      <div class="cps-section">
+        <p class="cps-section-title">Mobile number</p>
+        <p style="margin:6px 0 0;font-size:16px">${esc(verifiedNumber)} <span style="color:var(--cps-ok)">&#10003; verified</span></p>
+        <p class="cps-hint" style="margin-top:8px">
+          <button type="button" class="cps-linkbtn" id="cps-change-number" style="font-size:12px"
+            onclick="window._cpsChangeNumber()">Use a different number</button>
+        </p>
+      </div>`;
+    foot.innerHTML = `
+      <button class="cps-btn cps-btn-ghost" onclick="window._cpsBack()">Back</button>
+      <button class="cps-btn cps-btn-primary" onclick="window._cpsNext()">Continue to vehicle</button>`;
+    window._cpsBack = function() { S.step = pathStepBack(); render(); };
+    window._cpsNext = function() { S.step += 1; render(); };
+    window._cpsChangeNumber = function() {
+      S.otp.phone = _otpPhoneBySession[S.otp.sessionId] || S.otp.phone;
+      S.otp.sessionId = "";
+      S.otp.verified = false;
+      S.otp.account = null;
+      render();
+    };
+    return;
+  }
+
   /* 1b sectioned: MOBILE NUMBER card (with the we-only-use-this hint and a
      red error line) + the code card once sent, which gains the underlined
      "Resend code · Change number" links. */
   var phoneSection = `
     <div class="cps-section" id="cps-phone-block">
       <label for="cps-phone" class="cps-section-title" style="display:block">Mobile number</label>
+      <!-- autocomplete="tel" lets the phone offer the customer their OWN
+           number in one tap (this is the highest-friction field in the
+           funnel); inputmode="tel" opens the number pad. The value is shown
+           FORMATTED — a sent-to number used to render as raw digits. -->
       <input id="cps-phone" type="tel" class="cps-textarea" style="min-height:unset;padding:11px 12px"
-        placeholder="(512) 555-0123" value="${esc(phoneDigits)}"
+        autocomplete="tel" inputmode="tel"
+        placeholder="(703) 555-0123" value="${esc(formatPhoneDisplay(phoneDigits))}"
         oninput="window._cpsPhoneInput(this.value)"
         onkeydown="window._cpsPhoneKeydown(event)" ${codeSent ? "disabled" : ""} />
       <p class="cps-err" id="cps-phone-err"></p>
-      ${codeSent ? "" : '<p class="cps-hint" style="margin-top:2px">We only use this to confirm your booking.</p>'}
+      ${codeSent ? "" : '<p class="cps-hint" style="margin-top:2px">We only use this to confirm your booking. We will text you a one-time code; message and data rates may apply.</p>'}
     </div>`;
 
   var pinSection = "";
@@ -5440,6 +5794,7 @@ function renderVerify(body, foot, h2) {
   }
 
   body.innerHTML = `
+    ${stepNoticeHtml()}
     <p class="cps-steptitle">Verify your number</p>
     <p class="cps-stepsub">We will text a code to confirm it is you. It also lets us pull up your saved vehicles.</p>
     ${phoneSection}
@@ -5460,6 +5815,23 @@ function renderVerify(body, foot, h2) {
      instead of silently wiping it. */
   window._cpsPhoneInput = function(val) {
     S.otp.phone = val;
+    /* Format in place as they type, and clear a shown error the moment the
+       number becomes valid — the error used to sit there until the next
+       button press, so a corrected field still looked rejected. Caret is
+       parked at the end because formatting only ever appends punctuation
+       ahead of the digits already typed. */
+    var el = document.getElementById("cps-phone");
+    if (el) {
+      var formatted = formatPhoneDisplay(val);
+      if (formatted !== el.value) {
+        el.value = formatted;
+        if (typeof el.setSelectionRange === "function" && document.activeElement === el) {
+          try { el.setSelectionRange(formatted.length, formatted.length); } catch (e) { /* type=tel may refuse; harmless */ }
+        }
+      }
+    }
+    var errEl = document.getElementById("cps-phone-err");
+    if (errEl && errEl.textContent && isValidPhone(val)) errEl.textContent = "";
   };
 
   /* _cpsPhoneKeydown — Enter in the phone field sends the code, same as the
@@ -5480,16 +5852,24 @@ function renderVerify(body, foot, h2) {
      in-flight discipline as _cpsVerifyPrimary. */
   window._cpsResendCode = function() {
     if (S.otpBusy) return;
+    /* Cooldown. Every tap here sends a REAL text, and the link gave no hint
+       that a code was already on its way — so an impatient customer could
+       fire several in a row and (past the relay's per-phone cap) get an
+       error instead of a code. A countdown both throttles and explains. */
+    if (_cpsResendRemaining() > 0) return;
     var phone = _otpPhoneBySession[S.otp.sessionId] || S.otp.phone;
     S.otpBusy = true;
+    _cpsSetOtpControlsBusy(true);
     _cpsApplyOtpResult(otpSend(phone), function(result) {
       S.otpBusy = false;
+      _cpsSetOtpControlsBusy(false);
       if (!result.ok) {
         var errEl = document.getElementById("cps-code-err");
         if (errEl) errEl.textContent = result.error;
         announce(result.error);
         return;
       }
+      _cpsStartResendCooldown();
       announce("We sent a new code.");
       render();
     });
@@ -5517,6 +5897,30 @@ function renderVerify(body, foot, h2) {
     fn(result);
   }
 
+  /* PIN-row helpers, shared by the verify dispatch, the retry reset and the
+     autofill/paste distributor. All are tolerant of a detached row (a render
+     during an async gap), so callers never need their own null dance. */
+  var _cpsPinIds = ["cps-pin-0", "cps-pin-1", "cps-pin-2", "cps-pin-3"];
+  function _cpsPinValue() {
+    return _cpsPinIds
+      .map(function(id) { var el = document.getElementById(id); return el ? el.value : ""; })
+      .join("");
+  }
+  function _cpsClearPins() {
+    _cpsPinIds.forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) el.value = "";
+    });
+    var first = document.getElementById(_cpsPinIds[0]);
+    if (first) first.focus();
+  }
+  function _cpsFocusFirstEmptyPin() {
+    for (var i = 0; i < _cpsPinIds.length; i++) {
+      var el = document.getElementById(_cpsPinIds[i]);
+      if (el && !el.value) { el.focus(); return; }
+    }
+  }
+
   /* _cpsVerifyPrimary — v2 Task 17 fix pass hardening:
      - In-flight guard (S.otpBusy, the S.submitting discipline from
        createBooking): the flag is set synchronously before dispatch, so a
@@ -5532,12 +5936,10 @@ function renderVerify(body, foot, h2) {
   window._cpsVerifyPrimary = function() {
     if (S.otpBusy) return; // an OTP call is already in flight — ignore the re-entrant tap
     S.otpBusy = true;
-    var btnAtDispatch = document.getElementById("cps-verify-primary");
-    if (btnAtDispatch) btnAtDispatch.disabled = true;
+    _cpsSetOtpControlsBusy(true);
     function settle() {
       S.otpBusy = false;
-      var btn = document.getElementById("cps-verify-primary"); // re-query — a render may have replaced it
-      if (btn) btn.disabled = false;
+      _cpsSetOtpControlsBusy(false); // re-queries — a render may have replaced the nodes
     }
     if (!codeSent) {
       _cpsApplyOtpResult(otpSend(S.otp.phone), function(result) {
@@ -5545,15 +5947,27 @@ function renderVerify(body, foot, h2) {
         if (!result.ok) {
           var errEl = document.getElementById("cps-phone-err");
           if (errEl) errEl.textContent = result.error;
+          announce(result.error);
           return;
         }
+        /* The first send starts the cooldown too — otherwise Resend is live
+           the instant the code screen paints, before the text could arrive. */
+        _cpsStartResendCooldown();
         render();
       });
       return;
     }
-    var code = ["cps-pin-0", "cps-pin-1", "cps-pin-2", "cps-pin-3"]
-      .map(function(id) { var el = document.getElementById(id); return el ? el.value : ""; })
-      .join("");
+    var code = _cpsPinValue();
+    /* An incomplete code is a different problem from a wrong one — saying
+       "that code didn't match" when they simply have not finished typing
+       reads as a broken app. */
+    if (code.length < 4) {
+      settle();
+      var shortErrEl = document.getElementById("cps-code-err");
+      if (shortErrEl) shortErrEl.textContent = "Please enter all 4 digits.";
+      _cpsFocusFirstEmptyPin();
+      return;
+    }
     _cpsApplyOtpResult(otpVerify(code), function(result) {
       settle();
       if (result && result.error === "SESSION_EXPIRED") {
@@ -5568,6 +5982,10 @@ function renderVerify(body, foot, h2) {
             ? result.error
             : "That code didn't match. Please try again.";
         }
+        /* Hand back a CLEAR row focused on box 1. The wrong digits used to
+           stay put in maxlength=1 boxes, so typing over them did nothing
+           unless you deleted each one first — the retry felt frozen. */
+        _cpsClearPins();
         return;
       }
       if (S.step !== 2) return; // 2 = Verify (the index handleSessionExpired routes to) — stale success after navigation, don't advance
@@ -5587,10 +6005,34 @@ function renderVerify(body, foot, h2) {
       var el = document.getElementById(id);
       if (!el) return;
       el.addEventListener("input", function() {
-        el.value = el.value.replace(/\D/g, "").slice(0, 1);
+        var digits = el.value.replace(/\D/g, "");
+        /* SMS AUTOFILL. iOS/Android deliver the whole code as one input event
+           into whichever box has focus (autocomplete="one-time-code"), NOT as
+           a paste. Slicing to one character threw away everything after the
+           first digit, so tapping the keyboard's suggested code filled "1" and
+           the customer still had to type the rest by hand — on the one screen
+           that gates the booking. Anything multi-digit goes through the same
+           distributor the paste path uses, offset to the box being typed in. */
+        if (digits.length > 1) {
+          window._cpsPinPaste(digits, idx);
+          return;
+        }
+        el.value = digits.slice(0, 1);
         if (el.value && idx < arr.length - 1) {
           var next = document.getElementById(arr[idx + 1]);
           if (next) next.focus();
+        }
+        /* A visible "that code didn't match" is stale the moment the customer
+           starts a new code — clear it so the screen isn't scolding them
+           while they retype. */
+        if (el.value) {
+          var errNode = document.getElementById("cps-code-err");
+          if (errNode && errNode.textContent) errNode.textContent = "";
+        }
+        /* Last digit typed and the row is full: verify without making them
+           reach for the button, the way every SMS-code screen behaves. */
+        if (el.value && idx === arr.length - 1 && _cpsPinValue().length === arr.length) {
+          window._cpsVerifyPrimary();
         }
       });
       el.addEventListener("keydown", function(e) {
@@ -5607,14 +6049,24 @@ function renderVerify(body, foot, h2) {
         }
       });
     });
-    window._cpsPinPaste = function(digits) {
-      var clean = String(digits || "").replace(/\D/g, "").slice(0, pinIds.length);
+    /* startIdx: which box the digits begin at (0 for a paste into box 0 or an
+       autofill into the first box; the typed box's index when autofill lands
+       mid-row). Fills from there and leaves focus on the last box it wrote,
+       so the customer can immediately correct or submit. */
+    window._cpsPinPaste = function(digits, startIdx) {
+      var from = Number(startIdx) > 0 ? Number(startIdx) : 0;
+      var clean = String(digits || "").replace(/\D/g, "").slice(0, pinIds.length - from);
       var lastFilled = null;
       clean.split("").forEach(function(ch, i) {
-        var el = document.getElementById(pinIds[i]);
+        var el = document.getElementById(pinIds[from + i]);
         if (el) { el.value = ch; lastFilled = el; }
       });
       if (lastFilled) lastFilled.focus();
+      var errNode = document.getElementById("cps-code-err");
+      if (errNode && errNode.textContent) errNode.textContent = "";
+      /* Full code in hand: submit it. Every mainstream OTP screen verifies on
+         the last digit rather than making you find a button. */
+      if (_cpsPinValue().length === pinIds.length) window._cpsVerifyPrimary();
     };
     var pinBox0 = document.getElementById("cps-pin-0");
     if (pinBox0) {
@@ -5629,6 +6081,9 @@ function renderVerify(body, foot, h2) {
     }
     var first = document.getElementById("cps-pin-0");
     if (first) first.focus();
+    _cpsPaintResendLink(); // reflect any cooldown still running from the send that got us here
+  } else {
+    _cpsStopResendTicker(); // pre-send screen has no resend link to tick
   }
 }
 
@@ -5844,7 +6299,7 @@ function vehicleMakesProvider(year) {
     year:      year,
     honeypot:  hp ? hp.value : ''
   });
-  return fetch(CONFIG.backendUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: body })
+  return cpsFetch(CONFIG.backendUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: body })
     .then(function(res) {
       if (!res || !res.ok) throw new Error('vehicleMakes: non-ok response');
       return res.json();
@@ -5879,7 +6334,7 @@ function vehicleModelsProvider(year, makeId) {
     makeId:    makeId,
     honeypot:  hp ? hp.value : ''
   });
-  return fetch(CONFIG.backendUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: body })
+  return cpsFetch(CONFIG.backendUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: body })
     .then(function(res) {
       if (!res || !res.ok) throw new Error('vehicleModels: non-ok response');
       return res.json();
@@ -5967,17 +6422,21 @@ function ensureVehicleOptions() {
 function validateVehicle() {
   var restriction = CONFIG.vehicleRestriction;
   var year = parseInt(S.vehicle.year, 10);
+  /* Each failure names the FIELD it is about (`field`), so the gate can send
+     focus there instead of leaving the customer to hunt for which control the
+     message means — the errors render at the bottom of a form taller than a
+     phone screen. */
   if (!year || isNaN(year) || year < restriction.minYear) {
-    return { ok: false, error: "Please choose a model year of " + restriction.minYear + " or later." };
+    return { ok: false, field: 'cps-veh-year', error: "Please choose a model year of " + restriction.minYear + " or later." };
   }
   if (S.vehicle.makeId == null || !String(S.vehicle.makeName || "").trim()) {
-    return { ok: false, error: "Please choose your vehicle's make." };
+    return { ok: false, field: 'cps-veh-make', error: "Please choose your vehicle's make." };
   }
   if (restriction.allowedMakeIds.length > 0 && restriction.allowedMakeIds.indexOf(S.vehicle.makeId) === -1) {
-    return { ok: false, error: "We are not able to book that make online. Please call us to schedule." };
+    return { ok: false, field: 'cps-veh-make', error: "We are not able to book that make online. Please call us" + shopPhoneSuffix() + " to schedule." };
   }
   if (S.vehicle.modelId == null || !String(S.vehicle.modelName || "").trim()) {
-    return { ok: false, error: "Please choose your vehicle's model." };
+    return { ok: false, field: 'cps-veh-model', error: "Please choose your vehicle's model." };
   }
   return { ok: true };
 }
@@ -6006,15 +6465,21 @@ window.setCustomerInfoField = setCustomerInfoField;
 function validateCustomerInfo() {
   var c = S.customerInfo;
   if (!c.firstName.trim() || !c.lastName.trim()) {
-    return { ok: false, error: "Please enter your first and last name." };
+    return { ok: false, field: !c.firstName.trim() ? 'cps-cust-first' : 'cps-cust-last', error: "Please enter your first and last name." };
   }
   if (!/^\S+@\S+\.\S+$/.test(c.email.trim())) {
-    return { ok: false, error: "Please enter a valid email address." };
+    return { ok: false, field: 'cps-cust-email', error: "Please enter a valid email address." };
   }
   if (!c.address1.trim() || !c.city.trim() || !c.state.trim() || !c.zip.trim()) {
     var rideRequested = S.sched.handling === 'dropoff' && S.sched.ride;
+    /* Name the first empty piece so focus lands on it — "add your address"
+       is ambiguous across four fields. */
+    var missing = !c.address1.trim() ? 'cps-cust-addr1'
+      : !c.city.trim() ? 'cps-cust-city'
+      : !c.state.trim() ? 'cps-cust-state' : 'cps-cust-zip';
     return {
       ok: false,
+      field: missing,
       error: rideRequested
         ? "Please add your address. We need it to arrange your ride."
         : "Please add your street address, city, state, and zip.",
@@ -6167,6 +6632,23 @@ function attachAddressAutocomplete() {
     el.className = 'cps-addr-ac';
     if (S.customerInfo.address1) el.value = S.customerInfo.address1;
     el.addEventListener('gmp-select', function(ev) { _cpsPlaceSelected(ev); });
+    /* TYPED text counts, not just a picked suggestion. Before this, the only
+       writer of S.customerInfo.address1 was gmp-select, so a customer who
+       typed their address and pressed Continue without tapping a suggestion
+       (or whose browser autofilled it) hit "Please add your street address"
+       with the address visibly sitting in the field — a dead end at the last
+       step of the funnel. The element's inner input lives in shadow DOM, so
+       we read the composed path's origin and fall back to the documented
+       .value. gmp-select still overwrites with the clean structured address. */
+    el.addEventListener('input', function(ev) {
+      var origin = (typeof ev.composedPath === 'function' && ev.composedPath()[0]) || null;
+      var typed = (origin && typeof origin.value === 'string') ? origin.value : el.value;
+      if (typeof typed !== 'string') return;
+      S.customerInfo.address1 = typed;
+      var fallback = document.getElementById('cps-cust-addr1');
+      if (fallback) fallback.value = typed; // keep the fill target in sync for later renders
+      _cpsClearIdentityErrorIfFixed();
+    });
     input.parentNode.insertBefore(el, input);
     input.style.display = 'none'; // hidden, NOT removed — fallback + fill target stay
   } catch (err) {
@@ -6222,12 +6704,36 @@ function _cpsFillAddressFields(parts) {
     var el = document.getElementById(inputIds[field]);
     if (el) el.value = parts[field];
   });
-  var errEl = document.getElementById('cps-cust-err');
-  if (errEl && errEl.textContent) {
-    var result = validateCustomerInfo();
-    errEl.textContent = result.ok ? '' : result.error;
-  }
+  _cpsClearIdentityErrorIfFixed();
 }
+
+/*
+  _cpsClearIdentityErrorIfFixed() — live re-validation of the identity block,
+  but ONLY once an error is already on screen. Errors used to appear on
+  Continue and then sit there while the customer fixed the field, so a
+  corrected form still looked rejected; worse, the gate surfaces one problem
+  at a time, so a stale message pointed at the wrong field. Never introduces
+  an error while typing (that would scold mid-entry) — it only clears or
+  advances one that the customer has already seen.
+*/
+function _cpsClearIdentityErrorIfFixed() {
+  var errEl = document.getElementById('cps-cust-err');
+  if (!errEl || !errEl.textContent) return;
+  var result = validateCustomerInfo();
+  errEl.textContent = result.ok ? '' : result.error;
+}
+window._cpsClearIdentityErrorIfFixed = _cpsClearIdentityErrorIfFixed;
+
+/*
+  _cpsIdentityInput(field, value) — the oninput handler every identity field
+  shares: record the value, then refresh any visible gate error. Replaces the
+  bare setCustomerInfoField wiring so fixing a field clears its complaint.
+*/
+function _cpsIdentityInput(field, value) {
+  setCustomerInfoField(field, value);
+  _cpsClearIdentityErrorIfFixed();
+}
+window._cpsIdentityInput = _cpsIdentityInput;
 
 /* _cpsVehSelectStyle — shared inline style for the picker selects (44px
    target height, matching the text inputs' visual weight). */
@@ -6265,6 +6771,7 @@ function renderVehicle(body, foot, h2) {
       '<div style="display:flex;flex-direction:column;gap:8px">' + vehicleBtns + '</div>' +
       '<button class="cps-btn cps-btn-ghost" id="cps-veh-add" type="button" style="margin-top:10px;font-size:14px;padding:10px 14px" ' +
         'onclick="window.showAddVehicle()">Add a different vehicle</button>' +
+      '<p class="cps-err" id="cps-garage-err"></p>' +
       '</div>';
 
     /* Mileage confirm — the garage view never asked mileage before, so
@@ -6313,38 +6820,38 @@ function renderVehicle(body, foot, h2) {
       <div class="cps-field">
         <label for="cps-cust-first">First name</label>
         <input id="cps-cust-first" type="text" autocomplete="given-name" class="cps-textarea" style="min-height:unset;padding:11px 12px"
-          placeholder="Sam" value="${esc(S.customerInfo.firstName)}" oninput="window.setCustomerInfoField('firstName', this.value)" />
+          placeholder="Sam" value="${esc(S.customerInfo.firstName)}" oninput="window._cpsIdentityInput('firstName', this.value)" />
       </div>
       <div class="cps-field">
         <label for="cps-cust-last">Last name</label>
         <input id="cps-cust-last" type="text" autocomplete="family-name" class="cps-textarea" style="min-height:unset;padding:11px 12px"
-          placeholder="Rivera" value="${esc(S.customerInfo.lastName)}" oninput="window.setCustomerInfoField('lastName', this.value)" />
+          placeholder="Rivera" value="${esc(S.customerInfo.lastName)}" oninput="window._cpsIdentityInput('lastName', this.value)" />
       </div>
       <div class="cps-field">
         <label for="cps-cust-email">Email</label>
         <input id="cps-cust-email" type="email" autocomplete="email" class="cps-textarea" style="min-height:unset;padding:11px 12px"
-          placeholder="sam@example.com" value="${esc(S.customerInfo.email)}" oninput="window.setCustomerInfoField('email', this.value)" />
+          placeholder="sam@example.com" value="${esc(S.customerInfo.email)}" oninput="window._cpsIdentityInput('email', this.value)" />
       </div>
       <div class="cps-field">
         <label for="cps-cust-addr1">Street address</label>
         <input id="cps-cust-addr1" type="text" autocomplete="address-line1" class="cps-textarea" style="min-height:unset;padding:11px 12px"
-          placeholder="123 Main St" value="${esc(S.customerInfo.address1)}" oninput="window.setCustomerInfoField('address1', this.value)" />
+          placeholder="123 Main St" value="${esc(S.customerInfo.address1)}" oninput="window._cpsIdentityInput('address1', this.value)" />
         ${addrHint ? '<p class="cps-hint">' + esc(addrHint) + '</p>' : ''}
       </div>
       <div class="cps-field">
         <label for="cps-cust-city">City</label>
         <input id="cps-cust-city" type="text" autocomplete="address-level2" class="cps-textarea" style="min-height:unset;padding:11px 12px"
-          placeholder="Springfield" value="${esc(S.customerInfo.city)}" oninput="window.setCustomerInfoField('city', this.value)" />
+          placeholder="Springfield" value="${esc(S.customerInfo.city)}" oninput="window._cpsIdentityInput('city', this.value)" />
       </div>
       <div class="cps-field">
         <label for="cps-cust-state">State</label>
         <input id="cps-cust-state" type="text" autocomplete="address-level1" class="cps-textarea" style="min-height:unset;padding:11px 12px"
-          placeholder="VA" value="${esc(S.customerInfo.state)}" oninput="window.setCustomerInfoField('state', this.value)" />
+          placeholder="VA" value="${esc(S.customerInfo.state)}" oninput="window._cpsIdentityInput('state', this.value)" />
       </div>
       <div class="cps-field">
         <label for="cps-cust-zip">Zip</label>
         <input id="cps-cust-zip" type="text" inputmode="numeric" autocomplete="postal-code" class="cps-textarea" style="min-height:unset;padding:11px 12px"
-          placeholder="22150" value="${esc(S.customerInfo.zip)}" oninput="window.setCustomerInfoField('zip', this.value)" />
+          placeholder="22150" value="${esc(S.customerInfo.zip)}" oninput="window._cpsIdentityInput('zip', this.value)" />
       </div>
       <p class="cps-err" id="cps-cust-err"></p>
       </div>`;
@@ -6426,7 +6933,7 @@ function renderVehicle(body, foot, h2) {
     attachAddressAutocomplete();
   }
 
-  var vehCtaLabel = S._returnTo === 5 ? "Back to review" : "Continue to extras";
+  var vehCtaLabel = S._returnTo === 5 ? "Back to review" : "Continue to recommended";
   foot.innerHTML = `
     <button class="cps-btn cps-btn-ghost" onclick="window._cpsBack()">Back</button>
     <button class="cps-btn cps-btn-primary" onclick="window._cpsNext()">${vehCtaLabel}</button>`;
@@ -6447,22 +6954,32 @@ function renderVehicle(body, foot, h2) {
   };
   window._cpsNext = function() {
     if (!showNewEntry) {
-      if (!S.vehicle.tekVehicleId) return;
+      /* Garage list: this used to be a bare `return` — the CTA looked live and
+         did nothing at all when no vehicle was picked. Say so. */
+      if (!S.vehicle.tekVehicleId) {
+        _cpsShowStepError('cps-garage-err', 'Please choose which vehicle is coming in.', null);
+        return;
+      }
       _cpsAdvanceFromVehicle();
       return;
     }
+    /* Clear both lines first: the gate reports one problem at a time, so a
+       previously-shown message from the other block would otherwise linger
+       next to a field that is now fine. */
+    var custErrEl = document.getElementById("cps-cust-err");
+    var vehErrEl = document.getElementById("cps-veh-err");
+    if (custErrEl) custErrEl.textContent = '';
+    if (vehErrEl) vehErrEl.textContent = '';
     if (isNewCustomer) {
       var custResult = validateCustomerInfo();
       if (!custResult.ok) {
-        var custErrEl = document.getElementById("cps-cust-err");
-        if (custErrEl) custErrEl.textContent = custResult.error;
+        _cpsShowStepError('cps-cust-err', custResult.error, custResult.field);
         return;
       }
     }
     var result = validateVehicle();
     if (!result.ok) {
-      var errEl = document.getElementById("cps-veh-err");
-      if (errEl) errEl.textContent = result.error;
+      _cpsShowStepError('cps-veh-err', result.error, result.field);
       return;
     }
     _cpsAdvanceFromVehicle();
@@ -7686,7 +8203,7 @@ function createBooking() {
     S.submitting = false;
     return Promise.resolve({ ok: false, error: "We couldn't complete your booking. Please try again." });
   }
-  return fetch(CONFIG.backendUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: body })
+  return cpsFetch(CONFIG.backendUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: body })
     .then(function(res) {
       if (!res || !res.ok) throw new Error('createBooking: non-ok response');
       return res.json();
@@ -7754,7 +8271,10 @@ function handleSlotGone() {
   S.sched.slot = "";
   availCacheClear(); // the cached week is now stale — force a live refetch on the Time step
   S.step = 1;
-  announce("That time is no longer available. Please pick another.");
+  /* announce() alone reaches only screen readers. A sighted customer tapped
+     "Book Appointment" and landed back on the calendar with no explanation —
+     the single most alarming moment in the flow. setNotice paints it. */
+  setNotice("That time was just taken. Please pick another. Everything else you entered is saved.");
   render();
 }
 window.handleSlotGone = handleSlotGone;
@@ -7782,7 +8302,7 @@ function handleSessionExpired() {
   S.otp.verified = false;
   S.otp.sessionId = "";
   S.step = 2; // Verify
-  announce("Your session timed out. Please verify your number again. Everything you entered is saved.");
+  setNotice("Your session timed out. Please verify your number again. Everything you entered is saved.");
   render();
 }
 window.handleSessionExpired = handleSessionExpired;
@@ -7811,14 +8331,22 @@ function renderConfirm(body, foot, h2) {
      CONFIG.dropCutoff, never hardcoded; wait shows its slot; White Glove is
      day-only). */
   var dayLabel = S.sched.date ? humanDayLabel(S.sched.date) : "-";
-  var visitLabel;
+  /* Day / Time / Visit type as three rows, matching the Success recap. The
+     appointment TIME used to hang off the "Visit type" row ("Wait at the
+     shop, 10:00 AM") while Day sat on its own — so the single most important
+     fact on the review screen was the tail of a row labelled something else,
+     and the two screens disagreed about the shape of the same booking. */
+  var timeLabel;
   if (S.sched.handling === "dropoff") {
-    visitLabel = HANDLING_LABELS.dropoff + ", by " + to12h(CONFIG.dropCutoff);
-  } else if (S.sched.handling === "wait") {
-    visitLabel = HANDLING_LABELS.wait + (S.sched.slot ? ", " + to12h(S.sched.slot) : "");
+    timeLabel = "Drop off by " + to12h(CONFIG.dropCutoff) + ". The night before is even better.";
+  } else if (S.sched.handling === "whiteglove") {
+    timeLabel = "We'll reach out to coordinate your pickup.";
+  } else if (S.sched.slot) {
+    timeLabel = to12h(S.sched.slot);
   } else {
-    visitLabel = HANDLING_LABELS[S.sched.handling] || "Drop off";
+    timeLabel = "-";
   }
+  var visitLabel = HANDLING_LABELS[S.sched.handling] || "Drop off";
 
   var vehicleLabel = [S.vehicle.year, S.vehicle.make, S.vehicle.model].filter(Boolean).join(" ") || "-";
 
@@ -7937,11 +8465,21 @@ function renderConfirm(body, foot, h2) {
       reviewItem("-", 0) + '</div>';
   }
   bodyHtml += reviewRow("Day", dayLabel, 1);
+  bodyHtml += reviewRow("Time", timeLabel, 1);
   bodyHtml += reviewRow("Visit type", visitLabel, 1);
   if (S.sched.handling === "dropoff" && S.sched.ride) {
     bodyHtml += reviewRow("Ride", "Yes, within " + CONFIG.ride.radiusMiles + " miles", 1);
   }
   bodyHtml += reviewRow("Vehicle", vehicleLabel, 3);
+  /* Contact row: the customer hands over a phone (and, when new, a name and
+     email) several steps back and never sees it again before committing.
+     Showing it here lets a typo get caught before the confirmation text goes
+     to the wrong number. Edit routes to whichever step owns the value. */
+  var contactPhone = formatPhoneDisplay(_otpPhoneBySession[S.otp.sessionId] || S.otp.phone);
+  if (contactPhone) bodyHtml += reviewRow("Text updates to", contactPhone, 2);
+  var contactName = [S.customerInfo.firstName, S.customerInfo.lastName].filter(Boolean).join(" ").trim();
+  if (contactName) bodyHtml += reviewRow("Name", contactName, 3);
+  if (String(S.customerInfo.email || '').trim()) bodyHtml += reviewRow("Email", S.customerInfo.email.trim(), 3);
   bodyHtml += '</div>';
   /* Footer tax/shop-supplies note (owner spec 2026-07-23) — renders once, only
      when at least one rec row above carried a price. No total is ever shown;
@@ -7960,14 +8498,18 @@ function renderConfirm(body, foot, h2) {
      _cpsBook paints the calm retry copy (or a relay rejection, verbatim)
      here when the booking could not be completed and the customer stays on
      Confirm. Empty on every render — a fresh attempt starts clean. */
-  bodyHtml += '<p class="cps-hint" id="cps-book-err"></p>';
+  /* .cps-err + role="alert", not .cps-hint: this is the most consequential
+     failure in the widget ("we could not complete your booking") and it used
+     to render as 12px muted gray — quieter than a wrong OTP digit, which got
+     bold red. It now matches the weight of what it is telling the customer. */
+  bodyHtml += '<p class="cps-err" id="cps-book-err" role="alert" style="font-size:14px"></p>';
 
   body.innerHTML = bodyHtml;
 
   foot.innerHTML = `
     <button class="cps-btn cps-btn-ghost" id="cps-confirm-back" onclick="window._cpsBack()">Back</button>
     <button class="cps-btn cps-btn-primary" id="cps-confirm-book" onclick="window._cpsBook()" ${S.submitting ? "disabled" : ""}>
-      ${S.submitting ? "Booking..." : "Book Appointment"}
+      ${S.submitting ? "Booking..." : "Book appointment"}
     </button>`;
 
   window._cpsBack = function() { S.step = pathStepBack(); render(); };
@@ -8000,11 +8542,28 @@ function renderConfirm(body, foot, h2) {
   window._cpsBook = function() {
     var p = confirmBooking();
     var btn = document.getElementById("cps-confirm-book");
-    if (btn && S.submitting) btn.disabled = true;
+    if (btn && S.submitting) {
+      btn.disabled = true;
+      /* The renderConfirm branch that swaps in "Booking..." only runs on a
+         re-render, and this path never re-renders — so the label was dead
+         code and a submitting booking just showed a grayed-out button. Set
+         it here, where the submit actually happens. */
+      btn.textContent = "Booking...";
+    }
     p.then(function(result) {
       if (S.step !== 5) return; // routed away (success / slot-gone / re-OTP) — those paths re-rendered already
+      /* A second tap while the FIRST booking is still in flight gets
+         {ok:false, error:"A booking is already in progress."} back from the
+         S.submitting guard. Re-enabling the button and painting that error
+         under a live request told the customer their booking had failed when
+         it was still running. While submitting is true, this outcome is not
+         ours to report. */
+      if (S.submitting) return;
       var btnAfter = document.getElementById("cps-confirm-book");
-      if (btnAfter) btnAfter.disabled = false;
+      if (btnAfter) {
+        btnAfter.disabled = false;
+        btnAfter.textContent = "Book appointment";
+      }
       if (result && result.ok === false && result.error) {
         var errEl = document.getElementById("cps-book-err");
         if (errEl) errEl.textContent = result.error;
@@ -8122,16 +8681,46 @@ function successRecapHtml() {
   return '<div class="cps-review" id="cps-success-recap" style="margin-top:16px;text-align:left">' + groupsHtml + rowsHtml + '</div>';
 }
 
+/* shopFooterHtml() -> where-to-find-us block for the Success screen, or ''.
+   The flow never told the customer WHERE to bring the car, and told them to
+   "call us" without a number. Each piece renders only if configured, so an
+   unset CONFIG.shop.phoneDisplay simply omits the call line rather than
+   printing a blank or a placeholder. */
+function shopFooterHtml() {
+  var shop = CONFIG.shop || {};
+  var bits = '';
+  if (shop.addressLine || shop.cityStateZip) {
+    var addr = esc([shop.addressLine, shop.cityStateZip].filter(Boolean).join(', '));
+    bits += shop.mapsUrl
+      ? '<p style="margin:2px 0"><a href="' + esc(shop.mapsUrl) + '" target="_blank" rel="noopener" style="color:var(--cps-ink)">' + addr + '</a></p>'
+      : '<p style="margin:2px 0">' + addr + '</p>';
+  }
+  if (shop.phoneDisplay) {
+    bits += shop.phoneHref
+      ? '<p style="margin:2px 0">Questions? <a href="tel:' + esc(shop.phoneHref) + '" style="color:var(--cps-ink)">' + esc(shop.phoneDisplay) + '</a></p>'
+      : '<p style="margin:2px 0">Questions? Call ' + esc(shop.phoneDisplay) + '</p>';
+  }
+  if (!bits) return '';
+  return '<div class="cps-hint" style="margin-top:16px;text-align:center">' +
+    '<p style="margin:0 0 2px;color:var(--cps-ink)">' + esc(CONFIG.shopName) + '</p>' + bits + '</div>';
+}
+window.shopFooterHtml = shopFooterHtml;
+
 function renderSuccess(body, foot, h2) {
-  h2.textContent = "You are booked";
+  /* Header and body used to disagree — "You are booked" over "Your
+     appointment request has been received". Booked and requested are exactly
+     the distinction an anxious customer reads closely, so both now state the
+     honest one: we have the request, the shop confirms by text. */
+  h2.textContent = "Request received";
   document.getElementById("cps-steps").style.display = "none";
   body.innerHTML = `
     <div class="cps-success">
       <div class="cps-circle" aria-hidden="true">&#10003;</div>
-      <h3>You are all set</h3>
+      <h3>We have your request</h3>
       <p>Your appointment request has been received. You will get a text confirmation shortly.</p>
     </div>
-    ${successRecapHtml()}`;
+    ${successRecapHtml()}
+    ${shopFooterHtml()}`;
   foot.innerHTML = `
     <button class="cps-btn cps-btn-primary" onclick="cardinalHideBooking()">Close</button>`;
 }
