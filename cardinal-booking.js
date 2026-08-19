@@ -194,6 +194,7 @@ const CONFIG = {
     includes: [
       "Full synthetic oil change",
       "Tire rotation and brake check",
+      "Replace wiper blades",
       "Battery test",
       "Clean and service the battery terminals",
       "Inspect and top off all fluids",
