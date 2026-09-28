@@ -374,7 +374,7 @@ const CONFIG = {
   },
   colorHexMap:          {},
   unknownLightBlueLane: "navy",
-  availabilityCacheTtl: 90,
+  availabilityCacheTtl: 300,
   availPrefetchCacheMax: 4,
 
   /* _mockSlotGone — test-only escape hatch (v2 Task 11). When true, the mock
@@ -454,6 +454,7 @@ const S = {
   timeAnchor: "", // 'YYYY-MM-DD' — start of the visible 7-day week window on the Time step; "" until renderTime first sets it
   _availPreload: null, // { key, promise } — the mount-time availability preload (preview feedback round 3); consumed once by drawSlots when the key still matches, null otherwise. See preloadAvailability().
   _availCache: { entries: {}, order: [] }, // keyed week-availability cache (LRU, cap CONFIG.availPrefetchCacheMax). entries[key]=days map; order = most-recent-last. Replaces the old single {key,days} slot so the NEXT week can be prefetched after each paint (loading-ux plan Task 4). Invalidation: explicit retry and slot-gone recovery clear the WHOLE map (availCacheClear); handling/lane/service changes re-key on their own.
+  _relayWarm: null, // Promise of the mount-time relay warm-up (always resolves); the first grid fetch waits on it rather than racing it. See warmAvailability().
   _availInflight: {}, // key -> in-flight availability Promise; dedupes the visible fetch against the background prefetch of the same week
   otp:       { sessionId: "", code: "", verified: false, account: null, phone: "" },
   /* customerInfo — v2 Task 19: NEW-customer identity, captured on the Vehicle
@@ -821,12 +822,15 @@ function cardinalShowBooking() {
        real scheduler services the moment the widget mounts, so the keyword
        fast-path / tiles / AI all speak in real ids. Fired once, live path
        only — see loadLiveServices()'s doc comment. */
-    loadLiveServices();
+    var configLoad = loadLiveServices();
     /* Availability preload (preview feedback round 3) — warm the first
        bookable week's grid the moment the widget mounts, so renderTime can
        paint the day grid instantly instead of fetching on step entry. Fired
        once, live path only — see preloadAvailability()'s doc comment. */
     preloadAvailability();
+    // No visit type yet (the live flow) -> warm the relay's week cache
+    // instead, once the config fetch settles. See warmAvailability().
+    if (!S._availPreload) warmAvailability(configLoad);
   } else if (S.step === 6) {
     /* A prior booking finished on the terminal Success screen (step 6). Closing
        only hides the overlay — it never resets state — so reopening used to
@@ -4131,10 +4135,35 @@ function availabilityProvider(params) {
     services: (params && params.services) || [],
     honeypot: hp ? hp.value : ''
   });
-  return cpsFetch(CONFIG.backendUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: body })
-    .then(function(res) {
-      if (!res || !res.ok) throw new Error('availability: non-ok response');
-      return res.json();
+  /* One silent retry (2026-09-28) for a TRANSIENT failure: a non-ok or
+     non-JSON answer (Apps Script's redirect hop sometimes serves an HTML page)
+     or the relay's 'upstream' (a Tekmetric read hiccup). Never retried:
+     'busy' (rate-limiting — a retry adds load) and a timeout abort (the
+     customer has already waited the full bound). */
+  function attempt() {
+    return cpsFetch(CONFIG.backendUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: body })
+      .then(function(res) {
+        if (!res || !res.ok) throw new Error('availability: non-ok response');
+        return res.json();
+      });
+  }
+  function transient(err) {
+    return !!err && !err.cpsBusy && err.name !== 'AbortError';
+  }
+  function check(data) {
+    if (data && data.error === 'busy') {
+      var busyErr = new Error('availability: relay busy');
+      busyErr.cpsBusy = true;
+      throw busyErr;
+    }
+    if (data && data.error === 'upstream') throw new Error('availability: relay error — upstream');
+    return data;
+  }
+  return attempt()
+    .then(check)
+    .catch(function(err) {
+      if (!transient(err)) throw err;
+      return attempt().then(check);
     })
     .then(function(data) {
       if (data && data.error === 'busy') {
@@ -4238,6 +4267,47 @@ function preloadAvailability() {
   }
 }
 window.preloadAvailability = preloadAvailability;
+
+/*
+  warmAvailability(after) — 2026-09-28. A cold availability answer took ~11s:
+  the relay reads the week from Tekmetric and caches it (keyed by week anchor
+  only — NOT per handling), and on a quiet site most customers arrived to a
+  cold cache and watched "Checking available days". This fires ONE relay
+  'warm' call for the first bookable week (the same anchor the Time step's
+  first drawSlots requests) while the customer is still describing their
+  concern, so that request lands on a warm cache.
+  - Sequenced AFTER `after` (the config fetch) settles — never two concurrent
+    POSTs to Apps Script (see the apps-script fan-out note in drawSlots).
+  - S._relayWarm always RESOLVES (failures warn only); drawSlots waits on it
+    instead of racing it.
+  - Not an 'availability' request: nothing per-handling is fetched or cached
+    widget-side at mount (owner 2026-07-07).
+  - Live path only.
+*/
+function warmAvailability(after) {
+  if (!CONFIG.backendUrl) return;
+  try {
+    var hp = document.getElementById('cps-hp');
+    var body = JSON.stringify({
+      action:   'warm',
+      date:     weekRequestAnchor(clampWeekAnchor(minBookableDate())),
+      honeypot: hp ? hp.value : ''
+    });
+    S._relayWarm = Promise.resolve(after)
+      .catch(function() { return null; })
+      .then(function() {
+        return cpsFetch(CONFIG.backendUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: body });
+      })
+      .then(function() { return null; }, function(err) {
+        console.warn('warmAvailability: warm-up failed — the Time step will fetch on its own —', err);
+        return null;
+      });
+  } catch (err) {
+    console.warn('warmAvailability: skipped —', err);
+    S._relayWarm = null;
+  }
+}
+window.warmAvailability = warmAvailability;
 
 /*
   prefetchNextWeek(currentParams, weekMonday) — after a week's availability
@@ -5134,6 +5204,11 @@ function drawSlots(body) {
     });
   } else if (S._availInflight && S._availInflight[key]) {
     source = S._availInflight[key];
+  } else if (S._relayWarm) {
+    // Wait for the mount warm-up rather than race it: two concurrent POSTs to
+    // Apps Script can come back as an HTML error page, and once it lands this
+    // fetch is served from the relay's now-warm week cache.
+    source = S._relayWarm.then(function() { return availabilityProvider(params); });
   } else {
     source = availabilityProvider(params);
   }
