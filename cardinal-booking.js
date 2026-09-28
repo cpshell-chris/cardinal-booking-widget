@@ -7902,20 +7902,17 @@ window.basketEntryLine = basketEntryLine;
     3. one line per selected inspection (selectedInspectionLabels() — e.g.
        'Virginia Safety Inspection' / 'Virginia Emissions Inspection', or the
        combined AI-fallback line), iff S.inspection.added.
-    4. "Due at mileage:" + one line per selected ADVISORY due rec (<name> +
+    4. "Due at mileage:" + one line per selected due rec, bookable or
+       advisory (bookable added 2026-09-28: the relay sends no service chips) (<name> +
        ' ' + the rec's priceShort iff known — the bare "$260" form, never the
        long customer-facing phrasing). Header omitted entirely when nothing
        advisory is selected. A rec with no known price still gets its
        bare-name line — never invented.
-       NOTHING ELSE is listed here, because Tekmetric renders the other two
-       kinds itself and repeating them duplicated them on the appointment
-       (owner screenshot 2026-07-24):
-         - selected DECLINED jobs ride payload.recommendedServices, which
-           Tekmetric renders as its own "Previously declined>NAME" line (and
-           which drives recommendedServicesSkipped, so it must keep being
-           sent);
-         - selected BOOKABLE due recs ('svc:' key) ride payload.services and
-           render as Tekmetric service chips.
+       Declined work is NOT listed, because Tekmetric renders it itself and
+       repeating it duplicated it on the appointment (owner screenshot
+       2026-07-24): selected DECLINED jobs ride payload.recommendedServices,
+       which Tekmetric renders as its own "Previously declined>NAME" line (and
+       which drives recommendedServicesSkipped, so it must keep being sent).
   Lines are joined with '\n'.
 
   RETIRED (v2 Task 19): the FIX D interim courtesy row. It was explicitly the
@@ -7955,15 +7952,22 @@ function buildConcerns() {
          "Previously declined>NAME" line. It also drives
          recommendedServicesSkipped, so the field must keep being sent —
          therefore declined work is NOT repeated here.
-       - services (BOOKABLE ids, from a 'svc:' rec key) -> a service chip.
-         So a bookable due rec is not repeated here either.
-     That leaves the ADVISORY ('adv:') due work, which has no other way to
-     reach the shop: listed once, with its price when known. Never invents a
-     price — an unpriced item still gets its bare-name line. */
+     Every selected due rec — bookable ('svc:') or advisory ('adv:') — is
+     listed once, with its price when known. Never invents a price — an
+     unpriced item still gets its bare-name line. */
+  /* 2026-09-28 (Chris): BOOKABLE due recs are listed here too. The relay no
+     longer sends service chips — Tekmetric stamps one hour PER chip, so a
+     3-service booking landed 3 hours — which leaves this note as their only
+     route to staff. */
   var dueLines = [];
   S.recs.selected.forEach(function(sel) {
     if (sel.source !== 'recommended') return;                 // declined: Tekmetric renders it
-    if (String(sel.key || '').indexOf('svc:') === 0) return;  // bookable: rides services[] as a chip
+    var svcId = String(sel.key || '').indexOf('svc:') === 0 ? parseInt(sel.key.slice(4), 10) : null;
+    var alreadyListed = svcId != null && S.basket.some(function(e) {
+      return e.kind === 'service' && !e.summary && recBasketIds.indexOf(e.id) === -1 &&
+        (e.serviceIds || []).indexOf(svcId) !== -1;
+    });
+    if (alreadyListed) return;                                // the basket loop already named it
     var r = S.recs.recommended.find(function(x) { return x.key === sel.key; });
     dueLines.push(sel.name + (r && r.priceShort ? ' ' + r.priceShort : ''));
   });
