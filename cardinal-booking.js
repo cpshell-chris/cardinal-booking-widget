@@ -42,8 +42,8 @@ const CONFIG = {
   logoUrl:              "https://irp.cdn-website.com/4c6dc4d9/dms3rep/multi/logo.png",
   shopGuid:             "18d6da60-a83e-4143-b00b-535afb2645b1",
   timeZone:             "America/New_York",
-  backendUrl:           "https://script.google.com/macros/s/AKfycbxt1eXcCLSEJm47Li7cRF29F4FwTPEbu5eGZnkU-lkWdHPsVV1BZeoxZcC84EkL-06H/exec",            // paste Apps Script /exec URL to go live
-  backendFallbackUrl:   "",            // the other relay; used for the page load when the first call to backendUrl fails
+  backendUrl:           "https://cardinal-booking.vercel.app/api/relay",            // paste Apps Script /exec URL to go live
+  backendFallbackUrl:   "https://script.google.com/macros/s/AKfycbxt1eXcCLSEJm47Li7cRF29F4FwTPEbu5eGZnkU-lkWdHPsVV1BZeoxZcC84EkL-06H/exec",            // the other relay; used for the page load when the first call to backendUrl fails
   relays:               {"gas":"https://script.google.com/macros/s/AKfycbxt1eXcCLSEJm47Li7cRF29F4FwTPEbu5eGZnkU-lkWdHPsVV1BZeoxZcC84EkL-06H/exec","vercel":"https://cardinal-booking.vercel.app/api/relay"}, // both relay addresses, injected at build time; ?relay=gas|vercel picks one
   firstCallTimeoutMs:   6000,          // how long the first call may take before the fallback is tried (only when a fallback exists)
   bookingHorizonDays:   60,
@@ -163,6 +163,16 @@ const CONFIG = {
      Copy is deliberately PRICE-SILENT (owner decision 2026-07-23).
      title/sub revised (owner feedback 2026-07-24): "Been here before?" was
      too broad a hook -- everyone tapped it, wanting a more specific label. */
+  /* recsEmpty — what the Recommended step says when it has nothing to offer.
+     "Up to date" is a claim about the vehicle's record, so it is made only
+     when there IS a record. A vehicle we have never seen, or one whose
+     history came back empty (which is also what a failed lookup looks like),
+     gets the honest line instead. Price-silent, no dashes. */
+  recsEmpty: {
+    upToDate:  "Your vehicle is up to date. Nothing else to recommend right now.",
+    noHistory: "We don't have service history for this vehicle yet, so there's nothing to recommend right now. Your service advisor will go over it with you at your visit.",
+    checking:  "Checking your service records…"
+  },
   returnDoor: {
     title: "Complete previously recommended work",
     sub:   "See what we recommended for your vehicle and what it costs",
@@ -7800,7 +7810,13 @@ function renderRecommended(body, foot, h2) {
     /* Suppressed for a prior-work customer: priorWorkNote already told them
        the honest version, and "nothing else to recommend" would contradict it. */
     } else if (!S.priorWorkIntent) {
-      bodyHtml += '<p class="cps-stepsub">Your vehicle is up to date. Nothing else to recommend right now.</p>';
+      /* Which line: see CONFIG.recsEmpty. While the history is still being
+         read, neither claim is made (this step repaints when it arrives). */
+      var historyOnFile = Array.isArray(S.vehicle.history) && S.vehicle.history.length > 0;
+      var emptyLine = S.vehicle.historyLoading ? CONFIG.recsEmpty.checking
+        : historyOnFile ? CONFIG.recsEmpty.upToDate
+        : CONFIG.recsEmpty.noHistory;
+      bodyHtml += '<p class="cps-stepsub">' + esc(emptyLine) + '</p>';
     }
   } else {
     bodyHtml += '<p class="cps-stepsub">Optional: add any of these to your visit, or skip.</p>';
