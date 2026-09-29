@@ -376,6 +376,14 @@ const CONFIG = {
        performed. A 'wait' visit never qualifies (the customer is waiting on the
        car). Config-driven so the rule is never a hardcoded string in logic. */
     eligibleHandling: ["dropoff", "whiteglove"],
+    /* While an inspection is on the visit, the date picker crosses out
+       Saturday and Sunday (an inspection rides a WEEKDAY visit only).
+       weekendNote is the one line under the week that says why;
+       weekendClearedNotice is shown when a weekend day picked earlier had to
+       be cleared because an inspection was added afterwards. Calm,
+       price-free, no dashes. */
+    weekendNote: "Inspections are done on weekdays, so Saturday and Sunday are not available for this visit.",
+    weekendClearedNotice: "Inspections are done on weekdays. Please pick a weekday.",
     /* Walk-in hours copy — single source (never hardcode in markup). Calm,
        no urgency, price-free. Used by both the ineligible-notice's implicit
        weekday-dropoff framing and the Help-step terminal panel. */
@@ -4861,6 +4869,7 @@ function renderTime(body, foot, h2) {
         </span>
       </div>
       <div id="cps-days" class="cps-days-grid">${dowHtml}${dayBtns}</div>
+      ${S.inspection.intent ? '<p class="cps-hint" id="cps-insp-weekday-note" style="margin:10px 0 0">' + esc(CONFIG.inspection.weekendNote) + '</p>' : ''}
       ${dayNoteHtml}
       <p class="cps-hint" id="cps-day-notice" role="status" style="margin:8px 0 0"></p>
     </div>`;
@@ -5025,6 +5034,31 @@ window._cpsWeekNav = function(dir) {
   render();
 };
 
+/*
+  applyInspectionDayRule(days) -> days
+  An inspection rides a WEEKDAY visit only (cardinal-inspection-rules). While
+  one is on the visit (S.inspection.intent: a Services-step tile, or the AI
+  intake heard one), Saturday and Sunday are marked not available — so the
+  day grid crosses them out and the customer cannot pick a day the inspection
+  could not ride. Taking the inspection off the visit opens them again.
+
+  Returns a COPY with the weekend days replaced; the map passed in is never
+  changed, because it is the cached week and must stay true for a visit
+  without an inspection. With no inspection the map is handed back as is.
+  A day that is already not available keeps its own reason.
+*/
+function applyInspectionDayRule(days) {
+  if (!days || !S.inspection.intent) return days;
+  var out = {};
+  Object.keys(days).forEach(function(ymd) {
+    var info = days[ymd];
+    var open = !!info && info.available !== false;
+    out[ymd] = (open && dowOfYmd(ymd) > 5) ? { available: false, reason: 'inspection-weekday' } : info;
+  });
+  return out;
+}
+window.applyInspectionDayRule = applyInspectionDayRule;
+
 /* paintDayButtons(body, days) — repaints the #cps-days row so each button's
    disabled/enabled state (plus its aria-label availability suffix) reflects
    `days[date]`, without changing the buttons' markup shape (data-date,
@@ -5057,7 +5091,8 @@ function paintDayButtons(body, days) {
          strip is the belt-and-braces DOM guarantee. */
       btn.classList.remove("cps-sel");
       btn.setAttribute("aria-pressed", "false");
-      btn.setAttribute("aria-label", humanDayLabel(key) + ", not available");
+      btn.setAttribute("aria-label", humanDayLabel(key) +
+        ((info && info.reason === 'inspection-weekday') ? ", not available with an inspection" : ", not available"));
     } else {
       btn.disabled = false;
       btn.removeAttribute("aria-disabled");
@@ -5104,7 +5139,11 @@ function reconcileSelectedDay(days) {
   S.sched.slot = "";
   S.sched.validatedLane = "";
   recomputeInspection();
-  var msg = "That day just filled up. Please pick another.";
+  /* A weekend day closed by the inspection rule did not "fill up" — say what
+     actually happened (an inspection was added after the day was picked). */
+  var msg = (info && info.reason === 'inspection-weekday')
+    ? CONFIG.inspection.weekendClearedNotice
+    : "That day just filled up. Please pick another.";
   var noticeEl = document.getElementById("cps-day-notice");
   if (noticeEl) noticeEl.textContent = msg;
   announce(msg);
@@ -5143,7 +5182,7 @@ window.setDayNoticeLoading = setDayNoticeLoading;
   the calm empty/prompt message). Never fetches; the caller owns that.
 */
 function paintAvailability(body, wrap, handling, days) {
-  days = days || {};
+  days = applyInspectionDayRule(days || {});
   /* Round 7 (item 4): reconcile the current selection against the fresh map
      BEFORE painting — a day that just filled up (or a selection carried over
      from another week view) is deselected here, so the paint below can never
