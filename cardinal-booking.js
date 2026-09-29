@@ -43,6 +43,9 @@ const CONFIG = {
   shopGuid:             "18d6da60-a83e-4143-b00b-535afb2645b1",
   timeZone:             "America/New_York",
   backendUrl:           "https://script.google.com/macros/s/AKfycbxt1eXcCLSEJm47Li7cRF29F4FwTPEbu5eGZnkU-lkWdHPsVV1BZeoxZcC84EkL-06H/exec",            // paste Apps Script /exec URL to go live
+  backendFallbackUrl:   "",            // the other relay; used for the page load when the first call to backendUrl fails
+  relays:               {"gas":"https://script.google.com/macros/s/AKfycbxt1eXcCLSEJm47Li7cRF29F4FwTPEbu5eGZnkU-lkWdHPsVV1BZeoxZcC84EkL-06H/exec","vercel":"https://cardinal-booking.vercel.app/api/relay"}, // both relay addresses, injected at build time; ?relay=gas|vercel picks one
+  firstCallTimeoutMs:   6000,          // how long the first call may take before the fallback is tried (only when a fallback exists)
   bookingHorizonDays:   60,
   AI_ON:                true,
   OTP_ON:               true,
@@ -62,10 +65,16 @@ const CONFIG = {
   intakeMaxQuestions:   10,
   intakeTimeoutMs:      20000,         // live intake fetch abort bound — past it, honest degrade (never a hang)
   /* fetchTimeoutMs — the abort bound cpsFetch applies to every OTHER live
-     POST (availability, OTP send/verify, vehicle pickers, create). Before
-     this, only the intake was bounded and a stalled connection could leave a
-     spinner or a disabled button up for minutes. */
+     POST (availability, OTP send/verify, vehicle pickers). Before this, only
+     the intake was bounded and a stalled connection could leave a spinner or
+     a disabled button up for minutes. */
   fetchTimeoutMs:       20000,
+  /* createTimeoutMs — the booking call alone waits longer. The relay may
+     take up to its function limit (60 s) to answer a create; if the widget
+     gave up first, the customer would be told the booking failed while the
+     relay went on to make it, and a retry would book it twice. Keep this
+     ABOVE the relay's limit. */
+  createTimeoutMs:      65000,
   avgMilesPerDay:       37,
   historyRecs:          true,          // Layer B kill switch: false = Extras uses the generic matrix only
   maintenanceMatrix:    [],            // populated from settings at runtime
@@ -456,6 +465,7 @@ const S = {
   _availCache: { entries: {}, order: [] }, // keyed week-availability cache (LRU, cap CONFIG.availPrefetchCacheMax). entries[key]=days map; order = most-recent-last. Replaces the old single {key,days} slot so the NEXT week can be prefetched after each paint (loading-ux plan Task 4). Invalidation: explicit retry and slot-gone recovery clear the WHOLE map (availCacheClear); handling/lane/service changes re-key on their own.
   _relayWarm: null, // Promise of the mount-time relay warm-up (always resolves); the first grid fetch waits on it rather than racing it. See warmAvailability().
   _availInflight: {}, // key -> in-flight availability Promise; dedupes the visible fetch against the background prefetch of the same week
+  _relay: { pinned: false, usedFallback: false, override: null }, // which relay this page load uses; pinned after the first answer
   otp:       { sessionId: "", code: "", verified: false, account: null, phone: "" },
   /* customerInfo — v2 Task 19: NEW-customer identity, captured on the Vehicle
      step ("Tell us about yourself") when the verified account is
@@ -480,6 +490,9 @@ const S = {
 window.CONFIG = CONFIG;
 window.S = S;
 
+/* Relay override for this page load (?relay=gas|vercel) — see chooseRelay(). */
+try { chooseRelay(window.location && window.location.search); } catch (_e) { /* never block the widget on this */ }
+
 /* Pristine snapshot of the booking state, captured before any mutation, so a
    COMPLETED booking can be wiped back to first-open defaults. S is const and
    held by reference (window.S, closures), so resetBooking() mutates it in
@@ -488,7 +501,9 @@ window.S = S;
 const _pristineState = JSON.parse(JSON.stringify(S));
 function resetBooking() {
   const fresh = JSON.parse(JSON.stringify(_pristineState));
+  const relay = S._relay; // the relay is chosen per PAGE LOAD, not per booking
   Object.keys(fresh).forEach(function(k) { S[k] = fresh[k]; });
+  S._relay = relay;
   if (typeof _tcResetForNewBooking === 'function') _tcResetForNewBooking();
 }
 window.resetBooking = resetBooking;
@@ -1698,6 +1713,31 @@ window.intakeDegradeResult = intakeDegradeResult;
   clears the latch + pending paint, and the next submit works. The mock
   path (no backendUrl) keeps mockIntake untouched.
 */
+/*
+  chooseRelay(search) — Vercel migration. The widget holds two relay
+  addresses (CONFIG.relays). ?relay=gas or ?relay=vercel picks one for this
+  page load — how the new relay is tested on the real site before the switch.
+
+  The value is a NAME looked up in CONFIG.relays, never an address: nothing a
+  visitor puts in the URL can point the widget at another server. Any other
+  value, or a name with no address, is ignored. An explicit choice turns the
+  fallback off, so a test always exercises the relay that was asked for.
+*/
+function chooseRelay(search) {
+  var m = /[?&]relay=([^&#]*)/.exec(String(search || ""));
+  if (!m) return;
+  var name;
+  try { name = decodeURIComponent(m[1]).toLowerCase(); } catch (_e) { return; } // malformed %-escape
+  if (name !== "gas" && name !== "vercel") return;
+  var url = CONFIG.relays && CONFIG.relays[name];
+  if (!url) return;
+  CONFIG.backendUrl = url;
+  CONFIG.backendFallbackUrl = "";
+  S._relay.override = name;
+  S._relay.pinned = true;
+}
+window.chooseRelay = chooseRelay;
+
 /*
   cpsFetch(url, opts, timeoutMs) -> Promise<Response>
   Every live POST goes through here so none of them can hang the UI.
@@ -4560,12 +4600,33 @@ function loadLiveServices() {
   try {
     var hp = document.getElementById('cps-hp');
     var body = JSON.stringify({ action: 'config', honeypot: hp ? hp.value : '' });
-    return cpsFetch(CONFIG.backendUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: body })
-      .then(function(res) {
-        if (!res || !res.ok) throw new Error('config: non-ok response');
-        return res.json();
-      })
+    var ask = function(url, timeoutMs) {
+      return cpsFetch(url, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: body }, timeoutMs)
+        .then(function(res) {
+          if (!res || !res.ok) throw new Error('config: non-ok response');
+          return res.json();
+        });
+    };
+    /* The relay for this page load is decided by its FIRST answer. A relay
+       that answers at all — even with {ok:false} — is up, and is pinned. Only
+       no answer (network error, timeout, an HTTP error, a page that is not
+       JSON) moves this page load to the other relay, and the two are asked one
+       after the other, never at once. After that the choice never changes: a
+       verified session lives on one relay. */
+    var canFallBack = !S._relay.pinned && !!CONFIG.backendFallbackUrl;
+    var first = ask(CONFIG.backendUrl, canFallBack ? CONFIG.firstCallTimeoutMs : undefined);
+    if (canFallBack) {
+      first = first.catch(function(err) {
+        console.warn('loadLiveServices: the relay did not answer — using the fallback relay for this visit —', err);
+        CONFIG.backendUrl = CONFIG.backendFallbackUrl;
+        CONFIG.backendFallbackUrl = '';
+        S._relay.usedFallback = true;
+        return ask(CONFIG.backendUrl);
+      });
+    }
+    return first
       .then(function(data) {
+        S._relay.pinned = true;
         if (!isValidConfigResult(data)) throw new Error('config: malformed response shape');
         applyLiveServices(data.services);
         CONFIG.maintenanceMatrix = resolveMaintenanceMatrix(data.maintenanceMatrix, CONFIG.services);
@@ -4573,6 +4634,7 @@ function loadLiveServices() {
         return data;
       })
       .catch(function(err) {
+        S._relay.pinned = true;
         /* Any failure keeps the seeded list unchanged (warn only). The tiles
            stay real from the seed, so there is nothing to repaint or collapse
            — the mock/demo path and a live fetch failure look identical to the
@@ -8283,7 +8345,7 @@ function createBooking() {
     S.submitting = false;
     return Promise.resolve({ ok: false, error: "We couldn't complete your booking. Please try again." });
   }
-  return cpsFetch(CONFIG.backendUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: body })
+  return cpsFetch(CONFIG.backendUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: body }, CONFIG.createTimeoutMs)
     .then(function(res) {
       if (!res || !res.ok) throw new Error('createBooking: non-ok response');
       return res.json();
